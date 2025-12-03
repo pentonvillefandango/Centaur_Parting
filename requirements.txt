@@ -1,0 +1,10 @@
+# Core
+astropy>=5.0
+numpy>=1.21
+
+# GUI
+dearpygui>=1.7
+
+# Utilities
+watchdog>=3.0
+pyyaml>=6.0
