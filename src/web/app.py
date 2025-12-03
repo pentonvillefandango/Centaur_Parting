@@ -28,6 +28,50 @@ app.config['WATCH_PATH'] = '/Volumes/Rig24_Imaging'
 # Create analysis directory if it doesn't exist
 app.config['ANALYSIS_DIR'].mkdir(exist_ok=True)
 
+# Add this function after the imports but before DashboardManager
+def extract_equipment_from_header(header):
+    """Extract equipment information from FITS header"""
+    equipment = {
+        'telescope': str(header.get('TELESCOP', 'Unknown')).strip(),
+        'camera': str(header.get('INSTRUME', 'Unknown')).strip(),
+        'filter': str(header.get('FILTER', 'Unknown')).strip(),
+        'focal_length': header.get('FOCALLEN'),
+        'f_ratio': header.get('FOCRATIO'),
+        'pixel_size': header.get('XPIXSZ'),
+        'gain': header.get('GAIN'),
+        'offset': header.get('OFFSET'),
+        'temperature': header.get('CCD-TEMP'),
+        'site_lat': header.get('SITELAT'),
+        'site_long': header.get('SITELONG'),
+    }
+    
+    # Create rig identifier
+    camera_short = equipment['camera'].split()[0] if equipment['camera'] != 'Unknown' else 'Unknown'
+    telescope_short = equipment['telescope'].split()[0] if equipment['telescope'] != 'Unknown' else 'Unknown'
+    equipment['rig'] = f"{camera_short}/{telescope_short}"
+    
+    return equipment
+
+# Also add the dark library array (add this near the top after imports)
+DARK_LIBRARY = [0.2, 2, 5, 10, 15, 20, 30, 45, 60, 75, 90, 
+                120, 150, 180, 240, 300, 360, 420]
+
+def round_to_dark_library(exposure):
+    """Round exposure to nearest available dark frame"""
+    if exposure <= DARK_LIBRARY[0]:
+        return DARK_LIBRARY[0]
+    if exposure >= DARK_LIBRARY[-1]:
+        return DARK_LIBRARY[-1]
+    
+    # Find closest available exposure
+    closest = min(DARK_LIBRARY, key=lambda x: abs(x - exposure))
+    
+    # Round up to ensure sufficient signal
+    for dark_exp in sorted(DARK_LIBRARY):
+        if dark_exp >= exposure:
+            return dark_exp
+    
+    return closest
 class DashboardManager:
     """Manages the dashboard state and data"""
     def __init__(self):
@@ -424,3 +468,48 @@ def process_file_manual(filename):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+# ===== ADDED: Equipment Extraction =====
+def extract_equipment_from_header(header):
+    """Extract equipment information from FITS header"""
+    equipment = {
+        'telescope': str(header.get('TELESCOP', 'Unknown')).strip(),
+        'camera': str(header.get('INSTRUME', 'Unknown')).strip(),
+        'filter': str(header.get('FILTER', 'Unknown')).strip(),
+        'focal_length': header.get('FOCALLEN'),
+        'f_ratio': header.get('FOCRATIO'),
+        'pixel_size': header.get('XPIXSZ'),
+        'gain': header.get('GAIN'),
+        'offset': header.get('OFFSET'),
+        'temperature': header.get('CCD-TEMP'),
+        'site_lat': header.get('SITELAT'),
+        'site_long': header.get('SITELONG'),
+    }
+    
+    # Create rig identifier
+    camera_short = equipment['camera'].split()[0] if equipment['camera'] != 'Unknown' else 'Unknown'
+    telescope_short = equipment['telescope'].split()[0] if equipment['telescope'] != 'Unknown' else 'Unknown'
+    equipment['rig'] = f"{camera_short}/{telescope_short}"
+    
+    return equipment
+
+DARK_LIBRARY = [0.2, 2, 5, 10, 15, 20, 30, 45, 60, 75, 90, 
+                120, 150, 180, 240, 300, 360, 420]
+
+def round_to_dark_library(exposure):
+    """Round exposure to nearest available dark frame"""
+    if exposure <= DARK_LIBRARY[0]:
+        return DARK_LIBRARY[0]
+    if exposure >= DARK_LIBRARY[-1]:
+        return DARK_LIBRARY[-1]
+    
+    # Find closest available exposure
+    closest = min(DARK_LIBRARY, key=lambda x: abs(x - exposure))
+    
+    # Round up to ensure sufficient signal
+    for dark_exp in sorted(DARK_LIBRARY):
+        if dark_exp >= exposure:
+            return dark_exp
+    
+    return closest
+# ===== END ADDED =====

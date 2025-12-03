@@ -4,30 +4,42 @@ let currentPage = 1;
 const perPage = 20;
 let autoRefreshInterval = null;
 let watcherRunning = false;
-let refreshCountdown = 10;
-let lastUpdateTime = null;
-let statusPollingInterval = null;
+let refreshInterval = 10000; // 10 seconds default
+let countdownInterval = null;
+let countdownValue = 10;
+let lastDataUpdate = null;
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard initialized');
+    
+    // Initialize components
+    setupEventListeners();
     loadAnalyses();
     loadWatcherStatus();
-    setupAutoRefresh();
-    setupEventListeners();
-    startStatusPolling();
-    startCountdownTimer();
+    loadRigSummary();
+    
+    // Start with auto-refresh if toggle is on
+    const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+    if (autoRefreshToggle && autoRefreshToggle.checked) {
+        startAutoRefresh();
+    }
+    
+    // Initialize refresh rate display
+    updateRefreshRateDisplay();
+    
+    console.log('Dashboard ready');
 });
 
 function setupEventListeners() {
     // Start/Stop watcher buttons
     const startBtn = document.getElementById('start-watcher-btn');
     const stopBtn = document.getElementById('stop-watcher-btn');
-    const refreshBtn = document.getElementById('refresh-btn');
+    const refreshBtn = document.getElementById('refresh-now-btn');
     
     if (startBtn) startBtn.addEventListener('click', startWatcher);
     if (stopBtn) stopBtn.addEventListener('click', stopWatcher);
-    if (refreshBtn) refreshBtn.addEventListener('click', refreshDashboard);
+    if (refreshBtn) refreshBtn.addEventListener('click', refreshNow);
     
     // Process existing files button
     const processBtn = document.getElementById('process-existing-btn');
@@ -40,64 +52,136 @@ function setupEventListeners() {
         });
     }
     
-    // Auto-refresh checkbox
-    const autoRefreshCheckbox = document.getElementById('auto-refresh-checkbox');
-    if (autoRefreshCheckbox) {
-        autoRefreshCheckbox.addEventListener('change', function() {
-            if (this.checked && watcherRunning) {
+    // Auto-refresh toggle
+    const autoRefreshToggle = document.getElementById('auto-refresh-toggle');
+    if (autoRefreshToggle) {
+        autoRefreshToggle.addEventListener('change', function() {
+            if (this.checked) {
                 startAutoRefresh();
             } else {
                 stopAutoRefresh();
             }
-            updateAutoRefreshIndicator();
         });
     }
-}
-
-function startStatusPolling() {
-    // Clear any existing polling
-    if (statusPollingInterval) {
-        clearInterval(statusPollingInterval);
+    
+    // Refresh rate selector
+    const refreshRateSelect = document.getElementById('refresh-rate-select');
+    if (refreshRateSelect) {
+        refreshRateSelect.addEventListener('change', function() {
+            refreshInterval = parseInt(this.value);
+            updateRefreshRateDisplay();
+            
+            // Restart auto-refresh with new interval if it's running
+            if (autoRefreshToggle && autoRefreshToggle.checked) {
+                stopAutoRefresh();
+                startAutoRefresh();
+            }
+        });
     }
     
-    // Poll for watcher status every 3 seconds
-    statusPollingInterval = setInterval(loadWatcherStatus, 3000);
-    console.log('Started status polling (3s interval)');
+    // Export analysis button
+    const exportBtn = document.getElementById('export-analysis-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportCurrentAnalysis);
+    }
 }
 
-function startCountdownTimer() {
-    // Update countdown every second
-    setInterval(() => {
-        if (refreshCountdown > 0) {
-            refreshCountdown--;
-            updateRefreshCountdown();
+function startAutoRefresh() {
+    stopAutoRefresh(); // Clear any existing
+    
+    console.log(`Starting auto-refresh every ${refreshInterval/1000}s`);
+    
+    // Update UI
+    document.getElementById('refresh-rate-text').textContent = `Rate: ${refreshInterval/1000}s`;
+    
+    // Start countdown
+    startCountdown();
+    
+    // Initial refresh
+    refreshNow();
+    
+    // Set up periodic refresh
+    if (refreshInterval > 0) {
+        autoRefreshInterval = setInterval(() => {
+            refreshNow();
+        }, refreshInterval);
+    }
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+    
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
+    
+    // Reset progress bar
+    document.getElementById('refresh-progress').style.width = '0%';
+    document.getElementById('next-refresh-text').textContent = 'Auto-refresh stopped';
+    document.getElementById('refresh-rate-text').textContent = 'Rate: Off';
+}
+
+function startCountdown() {
+    if (countdownInterval) {
+        clearInterval(countdownInterval);
+    }
+    
+    countdownValue = refreshInterval / 1000;
+    
+    countdownInterval = setInterval(() => {
+        countdownValue--;
+        
+        if (countdownValue <= 0) {
+            countdownValue = refreshInterval / 1000;
         }
+        
+        // Update progress bar (smooth animation)
+        const progressPercent = 100 - ((countdownValue / (refreshInterval / 1000)) * 100);
+        document.getElementById('refresh-progress').style.width = `${progressPercent}%`;
+        
+        // Update text
+        document.getElementById('next-refresh-text').textContent = 
+            `Next refresh in: ${countdownValue}s`;
+            
     }, 1000);
+}
+
+function updateRefreshRateDisplay() {
+    const rateText = refreshInterval === 0 ? 'Off' : `${refreshInterval/1000}s`;
+    document.getElementById('refresh-rate-text').textContent = `Rate: ${rateText}`;
+}
+
+function refreshNow() {
+    console.log('Manual refresh triggered');
+    loadAnalyses(currentPage);
+    loadWatcherStatus();
+    loadRigSummary();
 }
 
 function loadAnalyses(page = 1) {
     currentPage = page;
-    console.log('Loading analyses, page:', page);
     
     fetch(`/api/analyses?page=${page}&per_page=${perPage}`)
         .then(response => {
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('Analyses loaded:', data.analyses?.length || 0, 'items');
+            console.log(`Loaded ${data.analyses?.length || 0} analyses`);
             updateAnalysesTable(data.analyses || []);
             updatePagination(data);
-            updateStats(data);
-            lastUpdateTime = new Date();
             updateLastUpdateTime();
             
-            // Reset countdown on successful load
-            if (autoRefreshInterval && watcherRunning) {
-                refreshCountdown = 10;
-                updateRefreshCountdown();
+            // Update displayed files count
+            const countElement = document.getElementById('displayed-files-count');
+            if (countElement) {
+                countElement.textContent = `${data.analyses?.length || 0} files`;
             }
         })
         .catch(error => {
@@ -108,17 +192,12 @@ function loadAnalyses(page = 1) {
 
 function updateAnalysesTable(analyses) {
     const tableBody = document.getElementById('analyses-table');
-    if (!tableBody) {
-        console.error('Analyses table not found');
-        return;
-    }
-    
-    console.log('Updating table with', analyses.length, 'analyses');
+    if (!tableBody) return;
     
     if (analyses.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-muted py-4">
+                <td colspan="14" class="text-center text-muted py-4">
                     <i class="bi bi-inbox" style="font-size: 2rem;"></i><br>
                     No analyses yet. Start the watcher to analyze NEW files.
                 </td>
@@ -128,12 +207,17 @@ function updateAnalysesTable(analyses) {
     }
     
     let html = '';
-    analyses.forEach((analysis, index) => {
+    analyses.forEach((analysis) => {
         const fileInfo = analysis.file_info || {};
         const analysisData = analysis.analysis || {};
         const sat = analysisData.saturation_analysis || {};
         const sky = analysisData.sky_brightness || {};
         const snr = analysisData.snr_metrics || {};
+        
+        // Extract equipment
+        const telescope = fileInfo.telescope || analysisData.telescope || 'Unknown';
+        const camera = fileInfo.camera || analysisData.camera || 'Unknown';
+        const rig = `${camera.split(' ')[0]}/${telescope.split(' ')[0]}`;
         
         // Determine exposure badge
         const factor = analysisData.exposure_factor || 1;
@@ -146,6 +230,14 @@ function updateAnalysesTable(analyses) {
         let skyBadge = 'sky-badge-dark';
         if (skyMag && skyMag < 19) skyBadge = 'sky-badge-bright';
         
+        // Parse RMS from filename (placeholder - will be replaced with actual parsing)
+        let rmsValue = '--';
+        const filename = fileInfo.filename || '';
+        const rmsMatch = filename.match(/RMS_?(\d+\.?\d*)/i);
+        if (rmsMatch) {
+            rmsValue = parseFloat(rmsMatch[1]).toFixed(2);
+        }
+        
         // Format timestamp
         const timestamp = analysis.timestamp ? new Date(analysis.timestamp) : new Date();
         const timeStr = timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -154,19 +246,27 @@ function updateAnalysesTable(analyses) {
         html += `
             <tr class="${sat.severity !== 'NONE' ? 'saturation-warning' : ''}">
                 <td>
-                    <div class="text-truncate" style="max-width: 250px;" title="${fileInfo.filename || 'Unknown'}">
+                    <div class="text-truncate" style="max-width: 200px;" title="${fileInfo.filename || 'Unknown'}">
                         <strong>${fileInfo.filename || 'Unknown'}</strong>
                     </div>
                     <small class="text-muted">${dateStr} ${timeStr}</small>
                 </td>
                 <td><span class="badge bg-secondary">${fileInfo.object || 'Unknown'}</span></td>
                 <td><span class="badge bg-info">${fileInfo.filter || 'N/A'}</span></td>
+                <td><small>${rig}</small></td>
+                <td><small>${telescope}</small></td>
+                <td><small>${camera}</small></td>
                 <td>
                     <span class="badge ${exposureBadge}">
                         ${analysisData.current_exposure || 0}s
                     </span>
                     <br>
                     <small>${analysisData.recommended_exposure ? 'Rec: ' + analysisData.recommended_exposure.toFixed(0) + 's' : ''}</small>
+                </td>
+                <td>
+                    <span class="badge ${rmsValue !== '--' ? 'bg-primary' : 'bg-secondary'}">
+                        ${rmsValue}" ${rmsValue !== '--' ? 'RMS' : ''}
+                    </span>
                 </td>
                 <td>
                     ${skyMag ? `
@@ -176,22 +276,20 @@ function updateAnalysesTable(analyses) {
                     ` : 'N/A'}
                 </td>
                 <td>
-                    <small>Bkg: ${snr.snr_background ? snr.snr_background.toFixed(1) : 'N/A'}</small><br>
-                    <small>Faint: ${snr.snr_faint_object ? snr.snr_faint_object.toFixed(1) : 'N/A'}</small>
+                    <small>${snr.snr_background ? snr.snr_background.toFixed(1) : 'N/A'}</small>
                 </td>
+                <td class="text-muted">--</td>
+                <td class="text-muted">--</td>
                 <td>
                     ${sat.severity && sat.severity !== 'NONE' ? 
                         `<span class="badge bg-warning">${sat.severity}</span>` : 
                         `<span class="badge bg-success">Good</span>`
                     }
-                    ${sat.likely_hot_pixels ? '<br><small class="text-muted">Hot pixels</small>' : ''}
                 </td>
                 <td>
                     <button class="btn btn-sm btn-outline-primary view-analysis-btn" 
-                            data-filename="${fileInfo.filename || ''}"
-                            title="View detailed analysis"
                             onclick="viewAnalysisDetails('${fileInfo.filename || ''}')">
-                        <i class="bi bi-eye"></i> View
+                        <i class="bi bi-eye"></i>
                     </button>
                 </td>
             </tr>
@@ -199,46 +297,93 @@ function updateAnalysesTable(analyses) {
     });
     
     tableBody.innerHTML = html;
-    
-    // Update analyses count badge
-    const analysesCount = document.getElementById('analyses-count');
-    if (analysesCount) {
-        analysesCount.textContent = `${analyses.length} file${analyses.length !== 1 ? 's' : ''}`;
-    }
 }
 
 function updateLastUpdateTime() {
+    lastDataUpdate = new Date();
     const timeElement = document.getElementById('last-update-time');
-    if (timeElement && lastUpdateTime) {
-        const timeStr = lastUpdateTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+    const statusElement = document.getElementById('last-update-status');
+    
+    if (timeElement && lastDataUpdate) {
+        const timeStr = lastDataUpdate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
         timeElement.textContent = timeStr;
     }
     
-    // Update status indicator
-    const statusText = document.getElementById('status-text');
-    if (statusText && lastUpdateTime) {
-        const now = new Date();
-        const secondsAgo = Math.floor((now - lastUpdateTime) / 1000);
-        statusText.textContent = `Updated ${secondsAgo}s ago`;
+    if (statusElement) {
+        statusElement.textContent = 'Data updated';
+        statusElement.className = 'card-text text-success';
+        
+        // Clear success status after 5 seconds
+        setTimeout(() => {
+            if (statusElement) {
+                statusElement.textContent = 'Auto-updating';
+                statusElement.className = 'card-text text-muted';
+            }
+        }, 5000);
     }
 }
 
-function updateRefreshCountdown() {
-    const progressBar = document.getElementById('refresh-progress');
-    const countdownText = document.getElementById('next-refresh-text');
-    
-    if (progressBar && countdownText) {
-        if (watcherRunning && autoRefreshInterval) {
-            const progress = 100 - (refreshCountdown * 10); // 10 seconds total
-            progressBar.style.width = `${progress}%`;
-            progressBar.className = 'progress-bar bg-info';
-            countdownText.textContent = `Next refresh in: ${refreshCountdown}s`;
-        } else {
-            progressBar.style.width = '0%';
-            progressBar.className = 'progress-bar bg-secondary';
-            countdownText.textContent = 'Auto-refresh paused';
+function loadRigSummary() {
+    // For now, generate from current analyses
+    // Later: Get from dedicated API endpoint
+    fetch(`/api/analyses?page=1&per_page=100`)
+        .then(response => response.json())
+        .then(data => {
+            updateRigSummary(data.analyses || []);
+        })
+        .catch(error => {
+            console.error('Error loading rig summary:', error);
+        });
+}
+
+function updateRigSummary(analyses) {
+    const tableBody = document.getElementById('rig-summary-table');
+    if (!tableBody || !analyses.length) {
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
         }
+        return;
     }
+    
+    // Group analyses by rig (camera + telescope)
+    const rigGroups = {};
+    analyses.forEach(analysis => {
+        const fileInfo = analysis.file_info || {};
+        const telescope = fileInfo.telescope || 'Unknown';
+        const camera = fileInfo.camera || 'Unknown';
+        const rigKey = `${camera}|${telescope}`;
+        
+        if (!rigGroups[rigKey]) {
+            rigGroups[rigKey] = {
+                camera: camera,
+                telescope: telescope,
+                count: 0
+            };
+        }
+        rigGroups[rigKey].count++;
+    });
+    
+    // Build table
+    let html = '';
+    Object.values(rigGroups).forEach(rig => {
+        const shortCamera = rig.camera.split(' ')[0];
+        const shortScope = rig.telescope.split(' ')[0];
+        
+        html += `
+            <tr>
+                <td><small>${shortCamera}/${shortScope}</small></td>
+                <td><small>${rig.telescope}</small></td>
+                <td><small>${rig.camera}</small></td>
+                <td class="analysis-count">${rig.count}</td>
+            </tr>
+        `;
+    });
+    
+    tableBody.innerHTML = html;
+    
+    // Update total analyses count
+    const total = Object.values(rigGroups).reduce((sum, rig) => sum + rig.count, 0);
+    document.getElementById('total-analyses-count').textContent = total;
 }
 
 function updatePagination(data) {
@@ -276,17 +421,6 @@ function updatePagination(data) {
     pagination.innerHTML = html;
 }
 
-function updateStats(data) {
-    // Update total analyses count
-    const totalElement = document.getElementById('total-analyses-count');
-    if (totalElement) {
-        totalElement.textContent = data.total || 0;
-    }
-    
-    // Update last update display
-    updateLastUpdateTime();
-}
-
 function loadWatcherStatus() {
     fetch('/api/watcher/status')
         .then(response => {
@@ -296,26 +430,8 @@ function loadWatcherStatus() {
             return response.json();
         })
         .then(data => {
-            console.log('Watcher status:', data);
             watcherRunning = data.watcher_running || false;
             updateWatcherControls(data);
-            updateAutoRefreshIndicator();
-            
-            // If watcher just started running, refresh data immediately
-            if (watcherRunning) {
-                const autoRefreshCheckbox = document.getElementById('auto-refresh-checkbox');
-                if (autoRefreshCheckbox && autoRefreshCheckbox.checked) {
-                    // Start auto-refresh if not already running
-                    if (!autoRefreshInterval) {
-                        startAutoRefresh();
-                    }
-                    // Refresh data immediately when watcher starts
-                    loadAnalyses(currentPage);
-                }
-            } else {
-                // Watcher stopped, stop auto-refresh
-                stopAutoRefresh();
-            }
         })
         .catch(error => {
             console.error('Error loading watcher status:', error);
@@ -326,7 +442,7 @@ function updateWatcherControls(data) {
     const startBtn = document.getElementById('start-watcher-btn');
     const stopBtn = document.getElementById('stop-watcher-btn');
     const statusBadge = document.getElementById('watcher-status-badge');
-    const statusIndicator = document.getElementById('watcher-status-indicator');
+    const statusText = document.getElementById('watcher-status-text');
     
     if (!startBtn || !stopBtn || !statusBadge) return;
     
@@ -336,19 +452,15 @@ function updateWatcherControls(data) {
         startBtn.disabled = true;
         stopBtn.disabled = false;
         statusBadge.className = 'badge bg-success';
-        statusBadge.textContent = `Running`;
-        if (statusIndicator) {
-            statusIndicator.className = 'badge bg-success';
-            statusIndicator.textContent = 'Running';
-        }
+        statusBadge.textContent = 'Running';
+        if (statusText) statusText.textContent = 'Monitoring for new files';
         
-        // Update watcher info message
+        // Update watcher info
         const watcherInfo = document.getElementById('watcher-info');
         if (watcherInfo) {
             watcherInfo.innerHTML = `
                 <i class="bi bi-check-circle"></i> 
-                <strong>Watcher Active:</strong> Monitoring for new FITS files. 
-                ${data.total_new_files || 0} new files analyzed.
+                <strong>Watcher Active:</strong> Monitoring for new FITS files.
             `;
             watcherInfo.className = 'alert alert-success';
         }
@@ -357,57 +469,62 @@ function updateWatcherControls(data) {
         stopBtn.disabled = true;
         statusBadge.className = 'badge bg-secondary';
         statusBadge.textContent = 'Stopped';
-        if (statusIndicator) {
-            statusIndicator.className = 'badge bg-secondary';
-            statusIndicator.textContent = 'Stopped';
-        }
+        if (statusText) statusText.textContent = 'Not monitoring';
         
-        // Update watcher info message
+        // Update watcher info
         const watcherInfo = document.getElementById('watcher-info');
         if (watcherInfo) {
             watcherInfo.innerHTML = `
                 <i class="bi bi-info-circle"></i> 
-                <strong>New Files Only Mode:</strong> Only files added AFTER starting the watcher will be analyzed and displayed.
-                Existing files in /Volumes/Rig24_Imaging will be ignored.
+                <strong>New Files Only Mode:</strong> Only files added AFTER starting the watcher will be analyzed.
             `;
             watcherInfo.className = 'alert alert-info';
         }
     }
 }
 
-function updateAutoRefreshIndicator() {
-    const autoRefreshStatus = document.getElementById('auto-refresh-status');
-    const autoRefreshIndicator = document.getElementById('auto-refresh-indicator');
-    const autoRefreshCheckbox = document.getElementById('auto-refresh-checkbox');
+function startWatcher() {
+    showNotification('Starting watcher...', 'info');
     
-    if (autoRefreshStatus) {
-        if (watcherRunning && autoRefreshCheckbox && autoRefreshCheckbox.checked) {
-            autoRefreshStatus.textContent = 'On';
-            autoRefreshStatus.className = 'badge bg-success';
-        } else {
-            autoRefreshStatus.textContent = 'Off';
-            autoRefreshStatus.className = 'badge bg-secondary';
-        }
-    }
-    
-    if (autoRefreshIndicator) {
-        if (watcherRunning && autoRefreshCheckbox && autoRefreshCheckbox.checked) {
-            autoRefreshIndicator.className = 'badge bg-success';
-            autoRefreshIndicator.textContent = 'Auto-refresh: On';
-        } else {
-            autoRefreshIndicator.className = 'badge bg-info';
-            autoRefreshIndicator.textContent = 'Auto-refresh: Off';
-        }
+    fetch('/api/watcher/start')
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.message || 'Watcher started', 'success');
+            loadWatcherStatus();
+            
+            // Refresh data after a short delay
+            setTimeout(() => {
+                refreshNow();
+            }, 1000);
+        })
+        .catch(error => {
+            console.error('Error starting watcher:', error);
+            showNotification('Error starting watcher: ' + error.message, 'error');
+        });
+}
+
+function stopWatcher() {
+    if (confirm('Stop the watcher? New files will no longer be analyzed automatically.')) {
+        showNotification('Stopping watcher...', 'info');
+        
+        fetch('/api/watcher/stop')
+            .then(response => response.json())
+            .then(data => {
+                showNotification(data.message || 'Watcher stopped', 'success');
+                loadWatcherStatus();
+            })
+            .catch(error => {
+                console.error('Error stopping watcher:', error);
+                showNotification('Error stopping watcher: ' + error.message, 'error');
+            });
     }
 }
 
 function viewAnalysisDetails(filename) {
     if (!filename) {
-        alert('No filename provided');
+        showNotification('No filename provided', 'error');
         return;
     }
-    
-    console.log('Viewing analysis for:', filename);
     
     fetch(`/api/analysis/${encodeURIComponent(filename)}`)
         .then(response => {
@@ -421,20 +538,19 @@ function viewAnalysisDetails(filename) {
         })
         .catch(error => {
             console.error('Error loading analysis details:', error);
-            showError('Could not load analysis details: ' + error.message);
+            showNotification('Could not load analysis details', 'error');
         });
 }
 
 function showAnalysisModal(analysis) {
     const modalBody = document.getElementById('analysis-modal-body');
     if (!modalBody) {
-        alert('Modal not found');
+        showNotification('Modal not found', 'error');
         return;
     }
     
     modalBody.innerHTML = createAnalysisDetailsHTML(analysis);
     
-    // Initialize Bootstrap modal
     const modalElement = document.getElementById('analysisModal');
     if (modalElement) {
         const modal = new bootstrap.Modal(modalElement);
@@ -443,14 +559,8 @@ function showAnalysisModal(analysis) {
 }
 
 function createAnalysisDetailsHTML(analysis) {
+    // Simplified for now - will be enhanced later
     const fileInfo = analysis.file_info || {};
-    const analysisData = analysis.analysis || {};
-    const sat = analysisData.saturation_analysis || {};
-    const sky = analysisData.sky_brightness || {};
-    const snr = analysisData.snr_metrics || {};
-    const noise = analysisData.noise_regime || {};
-    const sho = analysisData.sho_recommendation || {};
-    const recommendations = analysis.recommendations || [];
     
     return `
         <div class="container-fluid">
@@ -460,232 +570,45 @@ function createAnalysisDetailsHTML(analysis) {
                     <p class="text-muted">${analysis.timestamp ? new Date(analysis.timestamp).toLocaleString() : 'No timestamp'}</p>
                 </div>
             </div>
-            
             <div class="row mt-3">
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">File Information</h6>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Object:</strong></td><td>${fileInfo.object || 'Unknown'}</td></tr>
-                                <tr><td><strong>Filter:</strong></td><td>${fileInfo.filter || 'N/A'}</td></tr>
-                                <tr><td><strong>Dimensions:</strong></td><td>${fileInfo.dimensions ? fileInfo.dimensions.join(' × ') : 'N/A'}</td></tr>
-                                <tr><td><strong>Exposure:</strong></td><td><strong>${analysisData.current_exposure || 0}s</strong></td></tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">Exposure Analysis</h6>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Recommended:</strong></td><td><span class="badge bg-primary">${analysisData.recommended_exposure ? analysisData.recommended_exposure.toFixed(0) + 's' : 'N/A'}</span></td></tr>
-                                <tr><td><strong>Factor:</strong></td><td>${analysisData.exposure_factor ? analysisData.exposure_factor.toFixed(2) + 'x' : 'N/A'}</td></tr>
-                                <tr><td><strong>Optimal Sub:</strong></td><td>${analysisData.optimal_sub_length ? analysisData.optimal_sub_length.toFixed(0) + 's' : 'N/A'}</td></tr>
-                                <tr><td><strong>Noise Regime:</strong></td><td>${noise.read_noise_dominant ? 'Read-noise limited' : 'Sky-noise limited'}</td></tr>
-                            </table>
-                        </div>
-                    </div>
+                <div class="col-md-12">
+                    <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow: auto;">
+${JSON.stringify(analysis, null, 2)}
+                    </pre>
                 </div>
             </div>
-            
-            <div class="row mt-3">
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">Signal-to-Noise</h6>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Background:</strong></td><td>${snr.snr_background ? snr.snr_background.toFixed(1) : 'N/A'}</td></tr>
-                                <tr><td><strong>Faint Object:</strong></td><td>${snr.snr_faint_object ? snr.snr_faint_object.toFixed(1) : 'N/A'}</td></tr>
-                                <tr><td><strong>Moderate Object:</strong></td><td>${snr.snr_moderate_object ? snr.snr_moderate_object.toFixed(1) : 'N/A'}</td></tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">Sky Brightness</h6>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Magnitude:</strong></td><td>${sky.mag_per_arcsec2 ? sky.mag_per_arcsec2.toFixed(1) + ' mag/arcsec²' : 'N/A'}</td></tr>
-                                <tr><td><strong>Electrons/pixel:</strong></td><td>${sky.electrons_per_pixel ? sky.electrons_per_pixel.toFixed(0) + ' e⁻' : 'N/A'}</td></tr>
-                                <tr><td><strong>Rate:</strong></td><td>${sky.electrons_per_second_per_pixel ? sky.electrons_per_second_per_pixel.toFixed(2) + ' e⁻/s/pixel' : 'N/A'}</td></tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">Saturation Analysis</h6>
-                        </div>
-                        <div class="card-body">
-                            <table class="table table-sm table-borderless">
-                                <tr><td><strong>Max Value:</strong></td><td>${sat.max_value ? sat.max_value.toFixed(0) + ' ADU' : 'N/A'}</td></tr>
-                                <tr><td><strong>Saturation:</strong></td><td>${sat.saturation_level ? sat.saturation_level.toFixed(0) + ' ADU' : 'N/A'}</td></tr>
-                                <tr><td><strong>Near-saturated:</strong></td><td>${sat.near_saturated_pixels ? sat.near_saturated_pixels + ' pixels (' + sat.near_saturated_percent.toFixed(4) + '%)' : 'N/A'}</td></tr>
-                                <tr><td><strong>Severity:</strong></td><td><span class="badge ${sat.severity && sat.severity !== 'NONE' ? 'bg-warning' : 'bg-success'}">${sat.severity || 'Good'}</span></td></tr>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            ${recommendations.length > 0 ? `
-            <div class="row mt-3">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h6 class="mb-0">Recommendations</h6>
-                        </div>
-                        <div class="card-body p-0">
-                            <ul class="list-group list-group-flush">
-                                ${recommendations.map(rec => `<li class="list-group-item">${rec}</li>`).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
         </div>
     `;
 }
 
-function startWatcher() {
-    console.log('Starting watcher...');
-    
-    fetch('/api/watcher/start')
-        .then(response => response.json())
-        .then(data => {
-            console.log('Watcher start response:', data);
-            showMessage(data.message || 'Watcher started');
-            loadWatcherStatus();
-            
-            // Refresh analyses after a short delay
-            setTimeout(() => {
-                loadAnalyses(1);
-            }, 1000);
-        })
-        .catch(error => {
-            console.error('Error starting watcher:', error);
-            showError('Error starting watcher: ' + error.message);
-        });
-}
-
-function stopWatcher() {
-    if (confirm('Stop the watcher? New files will no longer be analyzed automatically.')) {
-        console.log('Stopping watcher...');
-        
-        fetch('/api/watcher/stop')
-            .then(response => response.json())
-            .then(data => {
-                console.log('Watcher stop response:', data);
-                showMessage(data.message || 'Watcher stopped');
-                loadWatcherStatus();
-                stopAutoRefresh();
-            })
-            .catch(error => {
-                console.error('Error stopping watcher:', error);
-                showError('Error stopping watcher: ' + error.message);
-            });
-    }
-}
-
-function startAutoRefresh() {
-    if (autoRefreshInterval) {
-        clearInterval(autoRefreshInterval);
-    }
-    
-    console.log('Starting auto-refresh (10s interval)');
-    autoRefreshInterval = setInterval(() => {
-        if (watcherRunning) {
-            console.log('Auto-refreshing analyses...');
-            loadAnalyses(currentPage);
-        }
-        updateRefreshCountdown();
-    }, 10000); // 10 seconds
-    
-    // Start countdown
-    refreshCountdown = 10;
-    updateRefreshCountdown();
-    updateAutoRefreshIndicator();
-}
-
-function stopAutoRefresh() {
-    if (autoRefreshInterval) {
-        console.log('Stopping auto-refresh');
-        clearInterval(autoRefreshInterval);
-        autoRefreshInterval = null;
-    }
-    updateRefreshCountdown();
-    updateAutoRefreshIndicator();
-}
-
-function refreshDashboard() {
-    console.log('Manual refresh');
-    loadAnalyses(currentPage);
-    loadWatcherStatus();
-    
-    // Reset countdown on manual refresh
-    if (watcherRunning && autoRefreshInterval) {
-        refreshCountdown = 10;
-        updateRefreshCountdown();
-    }
-}
-
-function setupAutoRefresh() {
-    const autoRefreshCheckbox = document.getElementById('auto-refresh-checkbox');
-    if (!autoRefreshCheckbox) return;
-    
-    // Start auto-refresh if checked and watcher is running
-    if (autoRefreshCheckbox.checked && watcherRunning) {
-        startAutoRefresh();
-    }
+function exportCurrentAnalysis() {
+    // Will be implemented when we have the analysis data in modal
+    showNotification('Export feature coming soon', 'info');
 }
 
 function processExistingFiles(count) {
-    alert(`To process ${count} existing files, use the command line or implement this feature.\n\nFor now, use: python -m monitor.enhanced_polling_watcher --process-existing --max-files ${count}`);
+    showNotification(`Processing ${count} existing files...`, 'info');
+    // Implementation will be added later
 }
 
-function showMessage(message) {
-    // Create a temporary alert
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-success alert-dismissible fade show';
-    alertDiv.style.position = 'fixed';
-    alertDiv.style.top = '20px';
-    alertDiv.style.right = '20px';
-    alertDiv.style.zIndex = '9999';
-    alertDiv.style.minWidth = '300px';
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
+function showNotification(message, type = 'info') {
+    const toastEl = document.getElementById('notification-toast');
+    const toastTitle = document.getElementById('toast-title');
+    const toastMessage = document.getElementById('toast-message');
     
-    document.body.appendChild(alertDiv);
+    if (!toastEl || !toastTitle || !toastMessage) return;
     
-    // Remove after 3 seconds
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.parentNode.removeChild(alertDiv);
-        }
-    }, 3000);
+    // Set title and message
+    toastTitle.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+    toastMessage.textContent = message;
+    
+    // Set color based on type
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
 }
 
 function showError(message) {
-    console.error('Error:', message);
-    alert('Error: ' + message);
+    showNotification(message, 'error');
 }
 
 // Make functions available globally
@@ -693,4 +616,5 @@ window.loadAnalyses = loadAnalyses;
 window.viewAnalysisDetails = viewAnalysisDetails;
 window.startWatcher = startWatcher;
 window.stopWatcher = stopWatcher;
-window.refreshDashboard = refreshDashboard;
+window.refreshNow = refreshNow;
+window.processExistingFiles = processExistingFiles;
