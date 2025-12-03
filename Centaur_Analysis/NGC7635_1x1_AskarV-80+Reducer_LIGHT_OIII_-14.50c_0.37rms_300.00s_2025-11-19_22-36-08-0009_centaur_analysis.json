@@ -1,0 +1,78 @@
+{
+  "file_info": {
+    "filename": "NGC7635_1x1_AskarV-80+Reducer_LIGHT_OIII_-14.50c_0.37rms_300.00s_2025-11-19_22-36-08-0009.fits",
+    "dimensions": [
+      2180,
+      3856
+    ],
+    "filter": "OIII",
+    "object": "NGC7635",
+    "exposure_from_header": 300.0,
+    "gain": 80.0,
+    "saturation_level": "Unknown"
+  },
+  "analysis": {
+    "saturation_analysis": {
+      "max_value": 65520.0,
+      "saturation_level": 65535.0,
+      "max_percentage": 99.97711146715496,
+      "near_saturated_pixels": 632,
+      "near_saturated_percent": 0.007518367657695382,
+      "high_saturation_pixels": 131,
+      "high_saturation_percent": 0.001558395827781796,
+      "severity": "NONE",
+      "warning": false,
+      "likely_hot_pixels": false,
+      "total_pixels": 8406080
+    },
+    "snr_metrics": {
+      "snr_background": 10.25942394845567,
+      "snr_faint_object": 2.9999999999999996,
+      "snr_moderate_object": 10.000000000000002,
+      "background_mean": 1354.0055238028751,
+      "background_std": 131.9767591831207,
+      "faint_signal_level": 1749.9358013522371,
+      "moderate_signal_level": 2673.7731156340824
+    },
+    "sky_brightness": {
+      "adu_per_pixel": 1344.0,
+      "electrons_per_pixel": 107520.0,
+      "electrons_per_second_per_pixel": 358.4,
+      "mag_per_arcsec2": 19.576541570815408,
+      "exposure_time_used": 300.0,
+      "gain": 80.0,
+      "pixel_scale": 1.55773046875
+    },
+    "current_exposure": 300.0,
+    "recommended_exposure": 299.9999999999999,
+    "exposure_factor": 0.9999999999999997,
+    "optimization_reason": "snr_optimization",
+    "optimal_sub_length": 60.0,
+    "sho_recommendation": {
+      "adjustment_factor": 0.6,
+      "recommended_exposure": 179.99999999999991,
+      "note": "For SII/OIII with same sky conditions"
+    },
+    "image_stats": {
+      "mean": 1354.0055238028751,
+      "median": 1344.0,
+      "std": 131.9767591831207,
+      "num_sources_detected": 78626
+    },
+    "noise_regime": {
+      "read_noise": 10.0,
+      "sky_noise": 327.90242451070714,
+      "read_noise_dominant": false,
+      "sky_rate_electrons_per_second": 358.4
+    }
+  },
+  "recommendations": [
+    "\u2713 No significant saturation detected",
+    "Exposure time is good: 300.0s",
+    "For SII/OIII: 180s (0.6x Ha)",
+    "Optimal sub length: 60s (currently 300.0s)",
+    "Sky-noise limited. Good exposure."
+  ],
+  "timestamp": "2025-12-03T13:40:30.206733",
+  "analyzer_version": "1.2"
+}

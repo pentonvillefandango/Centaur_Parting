@@ -1,0 +1,61 @@
+{
+  "file_info": {
+    "filename": "realistic_test.fits",
+    "dimensions": [
+      2048,
+      2048
+    ],
+    "exposure_time": 300.0,
+    "filter": "Ha",
+    "object": "M42"
+  },
+  "snr_analysis": {
+    "snr_final": 1232.3901767626671,
+    "snr_methods": {
+      "simple": 1223.4260608549766,
+      "aperture": 1245.8363506242026
+    },
+    "position": [
+      1000.0060942365086,
+      999.9915995917365
+    ],
+    "recommended_exposure": {
+      "current_exposure": 300.0,
+      "current_snr": 1232.3901767626671,
+      "recommended_exposure": 1.9752624090892057,
+      "exposure_factor": 0.0065842080302973525,
+      "saturation_warning": "False",
+      "max_value_adu": 10451.0,
+      "saturation_level": 50000.0,
+      "read_noise_dominant": "True",
+      "optimal_sub_length": 81.0,
+      "sky_limited": false
+    }
+  },
+  "sky_brightness": {
+    "adu_per_pixel": 500.0,
+    "electrons_per_pixel": 400.0,
+    "electrons_per_second_per_pixel": 1.3333333333333333,
+    "mag_per_arcsec2": 23.38946660595047,
+    "method": "median_sigma_clipped"
+  },
+  "exposure_recommendations": {
+    "current_exposure": 300.0,
+    "current_snr": 1232.3901767626671,
+    "recommended_exposure": 1.9752624090892057,
+    "exposure_factor": 0.0065842080302973525,
+    "saturation_warning": "False",
+    "max_value_adu": 10451.0,
+    "saturation_level": 50000.0,
+    "read_noise_dominant": "False",
+    "optimal_sub_length": 60.75,
+    "sky_limited": true
+  },
+  "quality_metrics": {
+    "image_mean": 499.926653746105,
+    "image_median": 500.0,
+    "image_std": 54.70320242475901,
+    "dynamic_range": 191.04914404919396
+  },
+  "timestamp": "2025-12-03T08:49:23.361465"
+}

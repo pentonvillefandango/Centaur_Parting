@@ -1,0 +1,49 @@
+============================================================
+Centaur Parting - FITS Analysis Summary
+============================================================
+
+FILE: NGC7635_1x1_AskarV-80+Reducer_LIGHT_SII_-14.40c_0.39rms_300.00s_2025-11-19_22-15-09-0008.fits
+OBJECT: NGC7635
+FILTER: SII
+DIMENSIONS: [2180, 3856]
+EXPOSURE: 300.0s
+
+SATURATION ANALYSIS:
+  Max value: 65520 ADU
+  Saturation level: 65535 ADU
+  Near-saturated pixels: 753 (0.0090%)
+  Severity: NONE
+  Hot pixels: True
+
+EXPOSURE OPTIMIZATION:
+  Current: 300.0s
+  Recommended: 300s
+  Factor: 1.00x
+  Optimal sub length: 60s
+
+SIGNAL-TO-NOISE:
+  Background SNR: 10.0
+  Faint object SNR: 3.0
+  Moderate object SNR: 10.0
+
+SKY BRIGHTNESS:
+  20.0 mag/arcsec²
+  71680 e-/pixel
+  238.93 e-/s/pixel
+
+SHO RECOMMENDATION:
+  SII/OIII adjustment: 0.60x
+  Recommended exposure: 180s
+
+RECOMMENDATIONS:
+  1. ✓ No significant saturation detected
+  2. Exposure time is good: 300.0s
+  3. For SII/OIII: 180s (0.6x Ha)
+  4. Optimal sub length: 60s (currently 300.0s)
+  5. Sky-noise limited. Good exposure.
+
+============================================================
+Generated: 2025-12-03T13:41:09.711504
+Analyzer: 1.2
+Source: N/A
+============================================================
