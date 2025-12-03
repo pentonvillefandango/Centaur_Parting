@@ -19,41 +19,48 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # Virtual Environment
 venv/
-
-# Database
-*.db
-*.sqlite3
-
-# Logs
-logs/
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
+env/
+ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Application data
-data/profiles/*.json
-data/exports/*
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Configs (except examples)
-config/profiles/*.json
-config/settings.yaml
-
-# FITS files (large)
+# Project specific exclusions
 *.fits
 *.fit
-*.fz
+*.FITS
+*.FIT
+Centaur_Analysis/
+test*.json
+test*.txt
+test*.log
+smoke_test.fits
+realistic_test.fits
 
-# Temporary files
-*.tmp
-*.temp
+# Test scripts to exclude
+test_enhanced_analyzer.py
+test_realistic.py
+test_actual_fits.py
+test_watcher_verbose.py
+test_rig24_watcher.py
+run_dashboard.py
+quick_test.py
