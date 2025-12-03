@@ -121,6 +121,65 @@ from fits_analyzer import EnhancedFITSAnalyzer
 print('EnhancedFITSAnalyzer imports successfully')
 "
 
+## 🌐 Web GUI
+
+Centaur Parting includes a web-based dashboard for monitoring and analysis.
+
+### Start the GUI:
+```bash
+# Install GUI dependencies
+pip install flask waitress
+
+# Run the GUI
+python run_gui.py
+
+# For production use:
+python run_gui.py --production
+
+Then open your browser to: http://localhost:5000
+
+GUI Features:
+Real-time monitoring of FITS file analysis
+
+Dashboard statistics and visualizations
+
+File-by-file analysis with detailed views
+
+Exposure recommendations across all files
+
+SHO workflow support with filter-specific advice
+
+Saturation alerts and sky brightness monitoring
+
+
+## **What the GUI Provides:**
+
+### **📊 Dashboard Features:**
+1. **Real-time Monitoring** - Watch as new FITS files are analyzed
+2. **Statistics Overview** - Total analyses, average exposure, sky brightness
+3. **File Browser** - Browse and view detailed analysis of each FITS file
+4. **Recommendations Panel** - Key exposure recommendations across all files
+5. **Controls** - Start/stop watcher, process existing files
+
+### **🔧 Technical Features:**
+1. **REST API** - All functionality available via API
+2. **Background Processing** - File analysis runs in background threads
+3. **Auto-refresh** - Dashboard updates automatically
+4. **Responsive Design** - Works on desktop and mobile
+5. **Detailed Views** - Click any file for complete analysis details
+
+### **🚀 Quick Start with GUI:**
+```bash
+# Install
+pip install -r requirements.txt
+
+# Run
+python run_gui.py
+
+# Open browser to http://localhost:5000
+
+
+
 Contributing
 Fork the repository
 
@@ -143,4 +202,7 @@ Inspired by cp-astrowatcher principles
 Thanks to all contributors and testers
 
 Need help? Check the documentation or open an issue on GitHub!
+
+
+
 

@@ -1,0 +1,426 @@
+"""
+Centaur Parting Web Dashboard
+Flask-based GUI for FITS analysis monitoring
+"""
+
+from flask import Flask, render_template, jsonify, request, send_file
+import os
+import sys
+from pathlib import Path
+import json
+from datetime import datetime
+import threading
+import time
+import hashlib
+
+# Add parent directory to path for imports
+sys.path.append(str(Path(__file__).parent.parent))
+
+# Import our existing analyzer
+from monitor.enhanced.fits_analyzer import EnhancedFITSAnalyzer
+from monitor.enhanced_polling_watcher import EnhancedPollingWatcher
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'centaur-parting-secret-key'
+app.config['ANALYSIS_DIR'] = Path.cwd() / 'Centaur_Analysis'
+app.config['WATCH_PATH'] = '/Volumes/Rig24_Imaging'
+
+# Create analysis directory if it doesn't exist
+app.config['ANALYSIS_DIR'].mkdir(exist_ok=True)
+
+class DashboardManager:
+    """Manages the dashboard state and data"""
+    def __init__(self):
+        self.watcher = None
+        self.watcher_thread = None
+        self.watcher_running = False
+        self.analyses = []  # Will only contain NEW files analyzed AFTER watcher started
+        self.processed_files = set()  # Track all files that have been processed
+        self.show_only_new_files = True  # Only show files processed after watcher start
+        
+        # When dashboard starts, mark all existing files as "already seen"
+        self.initialize_processed_files()
+    
+    def initialize_processed_files(self):
+        """Mark all existing FITS files as already processed (to ignore them initially)"""
+        watch_path = Path(app.config['WATCH_PATH'])
+        if watch_path.exists():
+            for ext in ['.fits', '.fit', '.FITS', '.FIT']:
+                for file_path in watch_path.rglob(f'*{ext}'):
+                    if file_path.is_file():
+                        # Create a unique identifier for the file
+                        file_hash = self.get_file_hash(file_path)
+                        self.processed_files.add(file_hash)
+    
+    def get_file_hash(self, file_path):
+        """Create a hash for a file (size + mtime)"""
+        try:
+            stat = file_path.stat()
+            return f"{file_path.name}_{stat.st_size}_{stat.st_mtime}"
+        except:
+            return f"{file_path.name}"
+    
+    def is_new_file(self, file_path):
+        """Check if a file is new (not in processed_files)"""
+        file_hash = self.get_file_hash(file_path)
+        return file_hash not in self.processed_files
+    
+    def mark_file_processed(self, file_path):
+        """Mark a file as processed"""
+        file_hash = self.get_file_hash(file_path)
+        self.processed_files.add(file_hash)
+    
+    def load_existing_analyses(self):
+        """Load analysis files from analysis directory"""
+        analysis_files = list(app.config['ANALYSIS_DIR'].glob('*_centaur_analysis.json'))
+        self.analyses = []
+        
+        for file_path in analysis_files:
+            try:
+                with open(file_path, 'r') as f:
+                    analysis = json.load(f)
+                    analysis['file_path'] = str(file_path)
+                    analysis['summary_file'] = str(file_path).replace('.json', '.txt')
+                    
+                    # Only add if it's a "new" file (processed after watcher start)
+                    # We'll filter based on whether show_only_new_files is True
+                    self.analyses.append(analysis)
+            except Exception as e:
+                print(f"Error loading {file_path}: {e}")
+        
+        # Sort by timestamp (newest first)
+        self.analyses.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    
+    def find_analysis_by_filename(self, filename):
+        """Find analysis by filename"""
+        for analysis in self.analyses:
+            if analysis['file_info']['filename'] == filename:
+                return analysis
+        return None
+    
+    def start_watcher(self):
+        """Start the file watcher in a background thread - only processes NEW files"""
+        if not self.watcher_running:
+            self.watcher_running = True
+            self.show_only_new_files = True  # Enable new-files-only mode
+            
+            def watcher_target():
+                while self.watcher_running:
+                    try:
+                        # Find NEW FITS files (not previously processed)
+                        watch_path = Path(app.config['WATCH_PATH'])
+                        if watch_path.exists():
+                            new_files_found = []
+                            
+                            for ext in ['.fits', '.fit', '.FITS', '.FIT']:
+                                for file_path in watch_path.rglob(f'*{ext}'):
+                                    if file_path.is_file() and self.is_new_file(file_path):
+                                        # This is a NEW file - analyze it
+                                        try:
+                                            analyzer = EnhancedFITSAnalyzer(str(file_path))
+                                            report = analyzer.generate_report()
+                                            
+                                            # Save the report
+                                            safe_name = file_path.name.replace(' ', '_').replace(':', '-')
+                                            report_filename = f"{Path(safe_name).stem}_centaur_analysis.json"
+                                            report_path = app.config['ANALYSIS_DIR'] / report_filename
+                                            
+                                            with open(report_path, 'w') as f:
+                                                json.dump(report, f, indent=2)
+                                            
+                                            # Also create summary file
+                                            summary_file = report_path.with_suffix('.txt')
+                                            self.create_summary_file(file_path, report, summary_file)
+                                            
+                                            # Mark as processed
+                                            self.mark_file_processed(file_path)
+                                            
+                                            # Add to analyses list
+                                            report['file_path'] = str(report_path)
+                                            report['summary_file'] = str(summary_file)
+                                            self.analyses.insert(0, report)  # Add at beginning
+                                            
+                                            new_files_found.append(file_path.name)
+                                            print(f"Analyzed new file: {file_path.name}")
+                                            
+                                        except Exception as e:
+                                            print(f"Error analyzing {file_path.name}: {e}")
+                            
+                            if new_files_found:
+                                print(f"Found {len(new_files_found)} new files")
+                                # Keep only recent analyses to avoid memory issues
+                                if len(self.analyses) > 100:
+                                    self.analyses = self.analyses[:100]
+                        
+                        time.sleep(10)  # Poll every 10 seconds
+                        
+                    except Exception as e:
+                        print(f"Watcher error: {e}")
+                        time.sleep(30)  # Wait longer on error
+            
+            self.watcher_thread = threading.Thread(target=watcher_target)
+            self.watcher_thread.daemon = True
+            self.watcher_thread.start()
+            return True
+        return False
+    
+    def create_summary_file(self, file_path, report, summary_path):
+        """Create a summary text file for an analysis"""
+        try:
+            with open(summary_path, 'w') as f:
+                f.write(f"{'='*60}\n")
+                f.write(f"Centaur Parting - FITS Analysis Summary\n")
+                f.write(f"{'='*60}\n\n")
+                
+                info = report['file_info']
+                f.write(f"FILE: {info['filename']}\n")
+                f.write(f"OBJECT: {info['object']}\n")
+                f.write(f"FILTER: {info['filter']}\n")
+                f.write(f"DIMENSIONS: {info['dimensions']}\n")
+                f.write(f"EXPOSURE: {info['exposure_from_header']}s\n\n")
+                
+                analysis = report['analysis']
+                
+                # Saturation
+                sat = analysis['saturation_analysis']
+                f.write(f"SATURATION ANALYSIS:\n")
+                f.write(f"  Max value: {sat['max_value']:.0f} ADU\n")
+                f.write(f"  Saturation level: {sat['saturation_level']:.0f} ADU\n")
+                f.write(f"  Near-saturated pixels: {sat['near_saturated_pixels']} ({sat['near_saturated_percent']:.4f}%)\n")
+                f.write(f"  Severity: {sat['severity']}\n")
+                f.write(f"  Hot pixels: {sat['likely_hot_pixels']}\n\n")
+                
+                # Exposure
+                f.write(f"EXPOSURE OPTIMIZATION:\n")
+                f.write(f"  Current: {analysis['current_exposure']}s\n")
+                f.write(f"  Recommended: {analysis['recommended_exposure']:.0f}s\n")
+                f.write(f"  Factor: {analysis['exposure_factor']:.2f}x\n")
+                f.write(f"  Optimal sub length: {analysis['optimal_sub_length']:.0f}s\n\n")
+                
+                # Recommendations
+                f.write(f"RECOMMENDATIONS:\n")
+                for i, rec in enumerate(report['recommendations'], 1):
+                    f.write(f"  {i}. {rec}\n")
+                
+                f.write(f"\n{'='*60}\n")
+                f.write(f"Generated: {report['timestamp']}\n")
+                f.write(f"Analyzer: {report['analyzer_version']}\n")
+                f.write(f"{'='*60}\n")
+        except Exception as e:
+            print(f"Error creating summary file: {e}")
+    
+    def stop_watcher(self):
+        """Stop the file watcher"""
+        self.watcher_running = False
+        if self.watcher_thread:
+            self.watcher_thread.join(timeout=5)
+        self.watcher_thread = None
+        self.watcher = None
+    
+    def get_display_analyses(self):
+        """Get analyses to display (respects show_only_new_files setting)"""
+        if self.show_only_new_files:
+            # Only return analyses from when watcher is running
+            # Since we only add to self.analyses when watcher is processing new files,
+            # all analyses in self.analyses are "new"
+            return self.analyses
+        else:
+            # Return all analyses (including pre-existing ones)
+            # This would require loading all analysis files
+            all_analyses = []
+            analysis_files = list(app.config['ANALYSIS_DIR'].glob('*_centaur_analysis.json'))
+            for file_path in analysis_files:
+                try:
+                    with open(file_path, 'r') as f:
+                        analysis = json.load(f)
+                        analysis['file_path'] = str(file_path)
+                        analysis['summary_file'] = str(file_path).replace('.json', '.txt')
+                        all_analyses.append(analysis)
+                except:
+                    pass
+            return sorted(all_analyses, key=lambda x: x.get('timestamp', ''), reverse=True)
+    
+    def get_stats(self):
+        """Get dashboard statistics"""
+        display_analyses = self.get_display_analyses()
+        
+        stats = {
+            'total_analyses': len(display_analyses),
+            'by_filter': {},
+            'by_object': {},
+            'recent_analyses': display_analyses[:10],
+            'watcher_running': self.watcher_running,
+            'show_only_new_files': self.show_only_new_files,
+        }
+        
+        # Count by filter
+        for analysis in display_analyses:
+            filter_name = analysis['file_info'].get('filter', 'Unknown')
+            stats['by_filter'][filter_name] = stats['by_filter'].get(filter_name, 0) + 1
+            
+            object_name = analysis['file_info'].get('object', 'Unknown')
+            stats['by_object'][object_name] = stats['by_object'].get(object_name, 0) + 1
+        
+        return stats
+
+# Initialize dashboard manager
+dashboard = DashboardManager()
+
+@app.route('/')
+def index():
+    """Main dashboard page"""
+    stats = dashboard.get_stats()
+    return render_template('dashboard.html', stats=stats)
+
+@app.route('/api/analyses')
+def get_analyses():
+    """Get analyses for display (respects new-files-only mode)"""
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
+    
+    display_analyses = dashboard.get_display_analyses()
+    
+    start = (page - 1) * per_page
+    end = start + per_page
+    
+    return jsonify({
+        'analyses': display_analyses[start:end],
+        'total': len(display_analyses),
+        'page': page,
+        'per_page': per_page,
+        'pages': (len(display_analyses) + per_page - 1) // per_page,
+        'watcher_running': dashboard.watcher_running,
+        'show_only_new_files': dashboard.show_only_new_files,
+    })
+
+@app.route('/api/analysis/<filename>')
+def get_analysis(filename):
+    """Get analysis for a specific file"""
+    try:
+        # Decode URL-encoded filename
+        from urllib.parse import unquote
+        filename = unquote(filename)
+        
+        # First, try to find in display analyses
+        display_analyses = dashboard.get_display_analyses()
+        for analysis in display_analyses:
+            if analysis['file_info']['filename'] == filename:
+                return jsonify(analysis)
+        
+        # If not found in display analyses, check all analysis files
+        analysis_files = list(app.config['ANALYSIS_DIR'].glob('*_centaur_analysis.json'))
+        for file_path in analysis_files:
+            try:
+                with open(file_path, 'r') as f:
+                    analysis = json.load(f)
+                    if analysis['file_info']['filename'] == filename:
+                        return jsonify(analysis)
+            except:
+                continue
+        
+        return jsonify({'error': 'Analysis not found'}), 404
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stats')
+def get_dashboard_stats():
+    """Get dashboard statistics"""
+    return jsonify(dashboard.get_stats())
+
+@app.route('/api/watcher/start')
+def start_watcher():
+    """Start the file watcher"""
+    try:
+        success = dashboard.start_watcher()
+        if success:
+            return jsonify({
+                'status': 'started', 
+                'message': 'Watcher started. Only NEW files will be analyzed and displayed.',
+                'watcher_running': True
+            })
+        else:
+            return jsonify({
+                'status': 'already_running', 
+                'message': 'Watcher is already running',
+                'watcher_running': True
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/watcher/stop')
+def stop_watcher():
+    """Stop the file watcher"""
+    try:
+        dashboard.stop_watcher()
+        return jsonify({
+            'status': 'stopped', 
+            'message': 'Watcher stopped',
+            'watcher_running': False
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/watcher/status')
+def watcher_status():
+    """Get watcher status"""
+    return jsonify({
+        'watcher_running': dashboard.watcher_running,
+        'show_only_new_files': dashboard.show_only_new_files,
+        'total_new_files': len(dashboard.analyses),
+        'total_processed_files': len(dashboard.processed_files)
+    })
+
+@app.route('/api/process/manual/<filename>')
+def process_file_manual(filename):
+    """Manually process a specific file (even if it's an existing file)"""
+    try:
+        from urllib.parse import unquote
+        filename = unquote(filename)
+        
+        watch_path = Path(app.config['WATCH_PATH'])
+        file_path = None
+        
+        # Search for the file
+        for ext in ['.fits', '.fit', '.FITS', '.FIT']:
+            matches = list(watch_path.rglob(f'*{filename}*{ext}'))
+            if matches:
+                file_path = matches[0]
+                break
+        
+        if not file_path or not file_path.exists():
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Analyze the file
+        analyzer = EnhancedFITSAnalyzer(str(file_path))
+        report = analyzer.generate_report()
+        
+        # Save the report
+        safe_name = file_path.name.replace(' ', '_').replace(':', '-')
+        report_filename = f"{Path(safe_name).stem}_centaur_analysis.json"
+        report_path = app.config['ANALYSIS_DIR'] / report_filename
+        
+        with open(report_path, 'w') as f:
+            json.dump(report, f, indent=2)
+        
+        # Create summary
+        summary_file = report_path.with_suffix('.txt')
+        dashboard.create_summary_file(file_path, report, summary_file)
+        
+        # Mark as processed and add to analyses
+        dashboard.mark_file_processed(file_path)
+        report['file_path'] = str(report_path)
+        report['summary_file'] = str(summary_file)
+        dashboard.analyses.insert(0, report)
+        
+        return jsonify({
+            'status': 'processed',
+            'message': f'File {filename} analyzed successfully',
+            'analysis': report
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)

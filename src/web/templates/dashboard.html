@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centaur Parting - Astrophotography Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        .card {
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .analysis-card {
+            border-left: 4px solid #007bff;
+        }
+        .saturation-warning {
+            border-left: 4px solid #dc3545 !important;
+        }
+        .sho-recommendation {
+            background-color: #f8f9fa;
+            border-left: 4px solid #20c997;
+        }
+        .fits-table td {
+            vertical-align: middle;
+        }
+        .badge-exposure-good { background-color: #198754; }
+        .badge-exposure-high { background-color: #fd7e14; }
+        .badge-exposure-low { background-color: #dc3545; }
+        .sky-badge-dark { background-color: #0d6efd; }
+        .sky-badge-bright { background-color: #6c757d; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-stars"></i> Centaur Parting
+            </a>
+            <span class="navbar-text">
+                Astrophotography Analysis Dashboard
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Dashboard Stats -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Total Analyses</h5>
+                        <h2 class="display-4" id="total-analyses">{{ stats.total_analyses }}</h2>
+                        <p class="card-text">FITS files analyzed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Avg Exposure</h5>
+                        <h2 class="display-4" id="avg-exposure">
+                            {{ "%.0f"|format(stats.exposure_stats.avg_exposure) }}s
+                        </h2>
+                        <p class="card-text">Average exposure time</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Sky Brightness</h5>
+                        <h2 class="display-4" id="avg-sky">
+                            {{ "%.1f"|format(stats.sky_brightness_stats.avg_mag) if stats.sky_brightness_stats.avg_mag else "N/A" }}
+                        </h2>
+                        <p class="card-text">mag/arcsec²</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Active Filters</h5>
+                        <h2 class="display-4" id="filter-count">{{ stats.by_filter|length }}</h2>
+                        <p class="card-text">Different filters used</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Controls</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-primary" onclick="startWatcher()">
+                                <i class="bi bi-play-circle"></i> Start Watcher
+                            </button>
+                            <button class="btn btn-success" onclick="processExisting(10)">
+                                <i class="bi bi-gear"></i> Process 10 Files
+                            </button>
+                            <button class="btn btn-info" onclick="refreshAnalyses()">
+                                <i class="bi bi-arrow-clockwise"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="mt-3">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+                                <label class="form-check-label" for="auto-refresh">Auto-refresh (30s)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Analyses -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Recent Analyses</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover fits-table">
+                                <thead>
+                                    <tr>
+                                        <th>File</th>
+                                        <th>Object</th>
+                                        <th>Filter</th>
+                                        <th>Exposure</th>
+                                        <th>Sky Brightness</th>
+                                        <th>SNR</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="analyses-table">
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <nav>
+                            <ul class="pagination justify-content-center" id="pagination">
+                                <!-- Pagination will be added by JavaScript -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendations Panel -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card sho-recommendation">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Key Recommendations</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="recommendations-list">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Modal -->
+    <div class="modal fade" id="analysisModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Analysis Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="analysis-details">
+                    <!-- Analysis details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
