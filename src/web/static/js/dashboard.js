@@ -362,20 +362,18 @@ function updateRigSummary(analyses) {
         rigGroups[rig].count++;
     });
     
-    // Build table
+        // Build table
     let html = '';
     Object.values(rigGroups).forEach(rig => {
         const shortCamera = rig.camera.split(' ')[0];
         const shortScope = rig.telescope.split(' ')[0];
         
-        html += \`
-            <tr>
-                <td><small>\${rig.rig}</small></td>
-                <td><small>\${shortScope}</small></td>
-                <td><small>\${shortCamera}</small></td>
-                <td class="analysis-count">\${rig.count}</td>
-            </tr>
-        \`;
+        html += '<tr>';
+        html += '<td><small>' + rig.rig + '</small></td>';
+        html += '<td><small>' + shortScope + '</small></td>';
+        html += '<td><small>' + shortCamera + '</small></td>';
+        html += '<td class="analysis-count">' + rig.count + '</td>';
+        html += '</tr>';
     });
     
     tableBody.innerHTML = html;
