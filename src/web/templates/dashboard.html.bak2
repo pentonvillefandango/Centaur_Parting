@@ -106,28 +106,6 @@
             color: #0d6efd;
         }
         
-        /* ADDED: Equal height cards */
-        .equal-height-card {
-            height: 200px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .equal-height-card .card-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* Rig summary card specific */
-        .rig-summary-card .card-body {
-            padding: 0.75rem;
-        }
-        
-        .rig-summary-card .rig-table {
-            margin-bottom: 0;
-        }
-        
         /* Dark mode specific */
         [data-bs-theme="dark"] .refresh-controls {
             background: rgba(255,255,255,0.05);
@@ -152,11 +130,31 @@
     </nav>
 
     <div class="container-fluid">
-        <!-- Dashboard Stats -->
-        <div class="row mb-4">
-            <!-- CARD 1 (was card 3): Rig Summary -->
-            <div class="col-md-4">
-                <div class="card equal-height-card rig-summary-card">
+            
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Last Data Update</h5>
+                        <h2 class="display-6" id="last-update-time">--:--:--</h2>
+                        <p class="card-text" id="last-update-status">Waiting for first update...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Watcher Status</h5>
+                        <h2 class="display-6">
+                            <span class="badge bg-secondary" id="watcher-status-badge">Stopped</span>
+                        </h2>
+                        <p class="card-text" id="watcher-status-text">Not monitoring</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Rig Summary</h5>
                         <div class="rig-table" style="color: white;">
@@ -174,30 +172,6 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- CARD 2 (stays in middle): Last Data Update -->
-            <div class="col-md-4">
-                <div class="card equal-height-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Last Data Update</h5>
-                        <h2 class="display-6" id="last-update-time">--:--:--</h2>
-                        <p class="card-text" id="last-update-status">Waiting for first update...</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- CARD 3 (was card 1): Watcher Status -->
-            <div class="col-md-4">
-                <div class="card equal-height-card">
-                    <div class="card-body">
-                        <h5 class="card-title">Watcher Status</h5>
-                        <h2 class="display-6">
-                            <span class="badge bg-secondary" id="watcher-status-badge">Stopped</span>
-                        </h2>
-                        <p class="card-text" id="watcher-status-text">Not monitoring</p>
                     </div>
                 </div>
             </div>
