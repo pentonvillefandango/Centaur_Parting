@@ -395,16 +395,60 @@ class EnhancedFITSAnalyzer:
                 'object': str(self.header.get('OBJECT', parts[0] if len(parts) > 0 else 'Unknown')),
                 'exposure_from_header': float(self.header.get('EXPTIME', 0)) or 'Unknown',
                 'gain': float(self.header.get('GAIN', 0)) or 'Unknown',
-                'saturation_level': float(self.header.get('SATURATE', 0)) or 'Unknown',
-                        'telescope': str(self.header.get('TELESCOP', 'Unknown')).strip(),
-                        'camera': str(self.header.get('INSTRUME', 'Unknown')).strip(),
-                'rig': self.fits_path.split('/')[2].replace('_Imaging', '').split('_')[0],  # Extract from path: /Volumes/Rig24_Imaging/...
+                'saturation_level': float(self.header.get('SATURATE', 0)) or 'Unknown'
+                        "telescope": str(self.header.get("TELESCOP", "Unknown")).strip(),
+                        "camera": str(self.header.get("INSTRUME", "Unknown")).strip(),
+                        "rig": f"{str(self.header.get("INSTRUME", "Unknown")).split()[0]}/{str(self.header.get("TELESCOP", "Unknown")).split()[0]}",
             },
             'analysis': analysis,
             'recommendations': recommendations,
             'timestamp': datetime.now().isoformat(),
             'analyzer_version': '1.2',
+            'equipment': self.extract_equipment(),
         }
         
         return report
 
+    def extract_equipment(self):
+        """Extract equipment information from FITS header"""
+        if not self.header:
+            return {}
+        
+        equipment = {
+            'telescope': str(self.header.get('TELESCOP', 'Unknown')).strip(),
+            'camera': str(self.header.get('INSTRUME', 'Unknown')).strip(),
+            'filter': str(self.header.get('FILTER', 'Unknown')).strip(),
+            'focal_length': self.header.get('FOCALLEN'),
+            'f_ratio': self.header.get('FOCRATIO'),
+            'pixel_size': self.header.get('XPIXSZ'),
+            'gain': self.header.get('GAIN'),
+            'offset': self.header.get('OFFSET'),
+            'temperature': self.header.get('CCD-TEMP'),
+            'site_lat': self.header.get('SITELAT'),
+            'site_long': self.header.get('SITELONG'),
+        }
+        
+        # Create rig identifier
+        camera_short = equipment['camera'].split()[0] if equipment['camera'] != 'Unknown' else 'Unknown'
+        telescope_short = equipment['telescope'].split()[0] if equipment['telescope'] != 'Unknown' else 'Unknown'
+        equipment['rig'] = f"{camera_short}/{telescope_short}"
+        
+        return equipment
+
+    def extract_equipment(self):
+        """Extract equipment information from FITS header"""
+        if not self.header:
+            return {}
+        
+        equipment = {
+            'telescope': str(self.header.get('TELESCOP', 'Unknown')).strip(),
+            'camera': str(self.header.get('INSTRUME', 'Unknown')).strip(),
+            'filter': str(self.header.get('FILTER', 'Unknown')).strip(),
+        }
+        
+        # Create rig identifier
+        camera_short = equipment['camera'].split()[0] if equipment['camera'] != 'Unknown' else 'Unknown'
+        telescope_short = equipment['telescope'].split()[0] if equipment['telescope'] != 'Unknown' else 'Unknown'
+        equipment['rig'] = f"{camera_short}/{telescope_short}"
+        
+        return equipment

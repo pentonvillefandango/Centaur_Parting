@@ -217,7 +217,7 @@ function updateAnalysesTable(analyses) {
         // Extract equipment
         const telescope = fileInfo.telescope || analysisData.telescope || 'Unknown';
         const camera = fileInfo.camera || analysisData.camera || 'Unknown';
-        const rig = `${camera.split(' ')[0]}/${telescope.split(' ')[0]}`;
+        const rig = fileInfo.rig || `${camera.split(" ")[0]}/${telescope.split(" ")[0]}`;
         
         // Determine exposure badge
         const factor = analysisData.exposure_factor || 1;
@@ -345,22 +345,21 @@ function updateRigSummary(analyses) {
         return;
     }
     
-    // Group analyses by rig (camera + telescope)
+    // Group analyses by rig
     const rigGroups = {};
     analyses.forEach(analysis => {
         const fileInfo = analysis.file_info || {};
-        const telescope = fileInfo.telescope || 'Unknown';
-        const camera = fileInfo.camera || 'Unknown';
-        const rigKey = `${camera}|${telescope}`;
+        const rig = fileInfo.rig || 'Unknown';
         
-        if (!rigGroups[rigKey]) {
-            rigGroups[rigKey] = {
-                camera: camera,
-                telescope: telescope,
+        if (!rigGroups[rig]) {
+            rigGroups[rig] = {
+                rig: rig,
+                telescope: fileInfo.telescope || 'Unknown',
+                camera: fileInfo.camera || 'Unknown',
                 count: 0
             };
         }
-        rigGroups[rigKey].count++;
+        rigGroups[rig].count++;
     });
     
     // Build table
@@ -369,21 +368,17 @@ function updateRigSummary(analyses) {
         const shortCamera = rig.camera.split(' ')[0];
         const shortScope = rig.telescope.split(' ')[0];
         
-        html += `
+        html += \`
             <tr>
-                <td><small>${shortCamera}/${shortScope}</small></td>
-                <td><small>${rig.telescope}</small></td>
-                <td><small>${rig.camera}</small></td>
-                <td class="analysis-count">${rig.count}</td>
+                <td><small>\${rig.rig}</small></td>
+                <td><small>\${shortScope}</small></td>
+                <td><small>\${shortCamera}</small></td>
+                <td class="analysis-count">\${rig.count}</td>
             </tr>
-        `;
+        \`;
     });
     
     tableBody.innerHTML = html;
-    
-    // Update total analyses count
-    const total = Object.values(rigGroups).reduce((sum, rig) => sum + rig.count, 0);
-    document.getElementById('total-analyses-count').textContent = total;
 }
 
 function updatePagination(data) {
