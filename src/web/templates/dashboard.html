@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
+<html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,13 +8,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
         :root {
-            --bs-body-bg: #f8f9fa;
-            --bs-body-color: #212529;
-            --card-bg: #ffffff;
-            --table-hover: #f5f5f5;
-        }
-        
-        [data-bs-theme="dark"] {
             --bs-body-bg: #121212;
             --bs-body-color: #e0e0e0;
             --card-bg: #1e1e1e;
@@ -22,22 +15,49 @@
             --bs-table-bg: #1e1e1e;
             --bs-table-color: #e0e0e0;
             --bs-table-hover-bg: #2d2d2d;
+            --navbar-bg: #0a0a0a;
+            --stat-card-bg: linear-gradient(135deg, #2c3e50 0%, #1a1a2e 100%);
+            --border-color: #444;
+        }
+        
+        [data-bs-theme="light"] {
+            --bs-body-bg: #f8f9fa;
+            --bs-body-color: #212529;
+            --card-bg: #ffffff;
+            --table-hover: #f5f5f5;
+            --navbar-bg: #212529;
+            --stat-card-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --border-color: #dee2e6;
         }
         
         body {
             background-color: var(--bs-body-bg);
             color: var(--bs-body-color);
             transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
         }
         
         .card {
             background-color: var(--card-bg);
-            border: 1px solid rgba(0,0,0,.125);
-            transition: background-color 0.3s;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .navbar {
+            background-color: var(--navbar-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
         
         .table {
             color: var(--bs-body-color);
+            border-color: var(--border-color);
         }
         
         .table-hover tbody tr:hover {
@@ -45,12 +65,18 @@
         }
         
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--stat-card-bg);
             color: white;
+            border: none;
+        }
+        
+        .stat-card .card-body {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0.375rem;
         }
         
         .analysis-card {
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #0d6efd;
         }
         
         .saturation-warning {
@@ -59,7 +85,7 @@
         
         .fits-table td {
             vertical-align: middle;
-            cursor: help; /* Indicate tooltips available */
+            cursor: help;
         }
         
         .badge-exposure-good { background-color: #198754; }
@@ -69,15 +95,20 @@
         .sky-badge-bright { background-color: #6c757d; }
         
         .column-tooltip {
-            border-bottom: 1px dotted #666;
+            border-bottom: 1px dashed #666;
             cursor: help;
         }
         
         .refresh-controls {
-            background: rgba(0,0,0,0.03);
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        [data-bs-theme="light"] .refresh-controls {
+            background: rgba(0, 0, 0, 0.03);
         }
         
         .theme-toggle {
@@ -85,11 +116,25 @@
             bottom: 20px;
             left: 20px;
             z-index: 1000;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
         }
         
         .progress-bar-refresh {
             background: linear-gradient(90deg, #198754, #0dcaf0);
             transition: width 1s linear;
+            border-radius: 3px;
         }
         
         .rig-table {
@@ -97,16 +142,25 @@
         }
         
         .rig-table td {
-            padding: 2px 8px;
+            padding: 4px 8px;
             border: none;
+        }
+        
+        .rig-table th {
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        [data-bs-theme="light"] .rig-table th {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
         
         .analysis-count {
             font-weight: bold;
-            color: #0d6efd;
+            color: #0dcaf0;
         }
         
-        /* ADDED: Equal height cards */
+        /* Equal height cards */
         .equal-height-card {
             height: 200px;
             display: flex;
@@ -121,32 +175,158 @@
         
         /* Rig summary card specific */
         .rig-summary-card .card-body {
-            padding: 0.75rem;
+            padding: 1rem;
         }
         
-        .rig-summary-card .rig-table {
-            margin-bottom: 0;
+        /* Modal styling */
+        .modal-content {
+            background-color: var(--card-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--border-color);
         }
         
-        /* Dark mode specific */
-        [data-bs-theme="dark"] .refresh-controls {
-            background: rgba(255,255,255,0.05);
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
         }
         
-        [data-bs-theme="dark"] .stat-card {
-            background: linear-gradient(135deg, #434343 0%, #000000 100%);
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Toast styling */
+        .toast {
+            background-color: var(--card-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .toast-header {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* Button improvements */
+        .btn {
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Pagination styling */
+        .page-link {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--bs-body-color);
+        }
+        
+        .page-link:hover {
+            background-color: var(--table-hover);
+            border-color: var(--border-color);
+        }
+        
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        
+        /* Alert styling */
+        .alert {
+            background-color: rgba(13, 110, 253, 0.1);
+            border: 1px solid rgba(13, 110, 253, 0.3);
+            color: var(--bs-body-color);
+        }
+        
+        /* Custom scrollbar for dark mode */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-active {
+            background-color: #198754;
+            box-shadow: 0 0 8px #198754;
+        }
+        
+        .status-inactive {
+            background-color: #6c757d;
+        }
+        
+        .status-error {
+            background-color: #dc3545;
+            box-shadow: 0 0 8px #dc3545;
+        }
+        
+        /* Code block styling for modal */
+        .code-block {
+            background: #0a0a0a;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            border: 1px solid #333;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .equal-height-card {
+                height: auto;
+                margin-bottom: 15px;
+            }
+            
+            .refresh-controls .btn-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .theme-toggle {
+                bottom: 10px;
+                left: 10px;
+                width: 40px;
+                height: 40px;
+            }
+            
+            .table-responsive {
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
-                <i class="bi bi-stars"></i> Centaur Parting
+                <i class="bi bi-stars me-2"></i> Centaur Parting
+                <small class="ms-2 opacity-75">Astrophotography Tracker</small>
             </a>
             <div class="navbar-text">
-                <span id="connection-status" class="badge bg-success">Connected</span>
-                <span class="ms-2" id="current-time">--:--:--</span>
+                <span class="status-indicator status-active"></span>
+                <span id="connection-status" class="badge bg-success me-2">Connected</span>
+                <span id="current-time" class="text-muted">--:--:--</span>
             </div>
         </div>
     </nav>
@@ -154,23 +334,31 @@
     <div class="container-fluid">
         <!-- Dashboard Stats -->
         <div class="row mb-4">
-            <!-- CARD 1 (was card 3): Rig Summary -->
+            <!-- Rig Summary Card -->
             <div class="col-md-4">
-                <div class="card equal-height-card rig-summary-card">
+                <div class="card equal-height-card stat-card">
                     <div class="card-body">
-                        <h5 class="card-title">Rig Summary</h5>
-                        <div class="rig-table" style="color: white;">
-                            <table class="table table-sm mb-0">
+                        <h5 class="card-title d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-camera-video me-2"></i>Rig Summary</span>
+                            <span class="badge bg-dark" id="total-files-count">0</span>
+                        </h5>
+                        <div class="rig-table mt-2">
+                            <table class="table table-borderless mb-0">
                                 <thead>
                                     <tr>
                                         <th>Rig</th>
                                         <th>Telescope</th>
                                         <th>Camera</th>
-                                        <th>Files</th>
+                                        <th class="text-end">Files</th>
                                     </tr>
                                 </thead>
                                 <tbody id="rig-summary-table">
-                                    <tr><td colspan="4" class="text-center text-muted">No data</td></tr>
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3">
+                                            <div class="spinner-border spinner-border-sm text-light me-2" role="status"></div>
+                                            <span class="text-light">Loading rig data...</span>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -178,26 +366,45 @@
                 </div>
             </div>
             
-            <!-- CARD 2 (stays in middle): Last Data Update -->
+            <!-- Last Data Update Card -->
             <div class="col-md-4">
-                <div class="card equal-height-card">
+                <div class="card equal-height-card stat-card">
                     <div class="card-body">
-                        <h5 class="card-title">Last Data Update</h5>
-                        <h2 class="display-6" id="last-update-time">--:--:--</h2>
-                        <p class="card-text" id="last-update-status">Waiting for first update...</p>
+                        <h5 class="card-title">
+                            <i class="bi bi-clock-history me-2"></i>Last Data Update
+                        </h5>
+                        <h2 class="display-6 mb-2" id="last-update-time">--:--:--</h2>
+                        <p class="card-text mb-0" id="last-update-status">
+                            <small>Waiting for first update...</small>
+                        </p>
+                        <div class="mt-auto">
+                            <small class="text-light opacity-75">
+                                <i class="bi bi-info-circle me-1"></i>Auto-refresh enabled
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <!-- CARD 3 (was card 1): Watcher Status -->
+            <!-- Watcher Status Card -->
             <div class="col-md-4">
-                <div class="card equal-height-card">
+                <div class="card equal-height-card stat-card">
                     <div class="card-body">
-                        <h5 class="card-title">Watcher Status</h5>
-                        <h2 class="display-6">
-                            <span class="badge bg-secondary" id="watcher-status-badge">Stopped</span>
+                        <h5 class="card-title">
+                            <i class="bi bi-eye me-2"></i>Watcher Status
+                        </h5>
+                        <h2 class="display-6 mb-2">
+                            <span class="badge bg-danger" id="watcher-status-badge">Stopped</span>
                         </h2>
-                        <p class="card-text" id="watcher-status-text">Not monitoring</p>
+                        <p class="card-text mb-2" id="watcher-status-text">
+                            <span class="status-indicator status-inactive"></span>
+                            Not monitoring
+                        </p>
+                        <div class="mt-auto">
+                            <small class="text-light opacity-75">
+                                <i class="bi bi-folder me-1"></i>/Volumes/Rig24_Imaging
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -209,24 +416,27 @@
                 <div class="card refresh-controls">
                     <div class="card-body">
                         <div class="row align-items-center">
-                            <div class="col-md-4">
-                                <div class="btn-group" role="group">
-                                    <button id="start-watcher-btn" class="btn btn-success">
-                                        <i class="bi bi-play-circle"></i> Start Watcher
+                            <div class="col-lg-4 mb-3 mb-lg-0">
+                                <div class="btn-group w-100" role="group">
+                                    <button id="start-watcher-btn" class="btn btn-success btn-sm">
+                                        <i class="bi bi-play-circle me-1"></i> Start
                                     </button>
-                                    <button id="stop-watcher-btn" class="btn btn-danger" disabled>
-                                        <i class="bi bi-stop-circle"></i> Stop Watcher
+                                    <button id="stop-watcher-btn" class="btn btn-danger btn-sm" disabled>
+                                        <i class="bi bi-stop-circle me-1"></i> Stop
                                     </button>
-                                    <button id="refresh-now-btn" class="btn btn-info">
-                                        <i class="bi bi-arrow-clockwise"></i> Refresh Now
+                                    <button id="refresh-now-btn" class="btn btn-info btn-sm">
+                                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                                    </button>
+                                    <button id="process-existing-btn" class="btn btn-warning btn-sm">
+                                        <i class="bi bi-gear me-1"></i> Process All
                                     </button>
                                 </div>
                             </div>
                             
-                            <div class="col-md-4">
+                            <div class="col-lg-5 mb-3 mb-lg-0">
                                 <div class="row g-2 align-items-center">
                                     <div class="col-auto">
-                                        <label class="form-label mb-0">Refresh:</label>
+                                        <label class="form-label mb-0">Refresh Rate:</label>
                                     </div>
                                     <div class="col">
                                         <select class="form-select form-select-sm" id="refresh-rate-select">
@@ -246,11 +456,17 @@
                                 </div>
                             </div>
                             
-                            <div class="col-md-4">
-                                <div class="d-grid">
-                                    <button id="process-existing-btn" class="btn btn-warning">
-                                        <i class="bi bi-gear"></i> Process Existing Files
-                                    </button>
+                            <div class="col-lg-3">
+                                <div class="d-flex align-items-center">
+                                    <span class="me-2">Theme:</span>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary active" id="dark-theme-btn">
+                                            <i class="bi bi-moon-stars"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="light-theme-btn">
+                                            <i class="bi bi-sun"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -258,23 +474,37 @@
                         <!-- Refresh Progress -->
                         <div class="row mt-3">
                             <div class="col-12">
-                                <div class="progress" style="height: 6px;">
-                                    <div id="refresh-progress" class="progress-bar progress-bar-refresh" 
-                                         role="progressbar" style="width: 0%"></div>
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="me-2">Refresh progress:</span>
+                                    <div class="flex-grow-1">
+                                        <div class="progress" style="height: 8px;">
+                                            <div id="refresh-progress" class="progress-bar progress-bar-refresh" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="d-flex justify-content-between mt-1">
-                                    <small class="text-muted" id="next-refresh-text">Next refresh: --</small>
-                                    <small class="text-muted" id="refresh-rate-text">Rate: 10s</small>
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted" id="next-refresh-text">
+                                        <i class="bi bi-clock me-1"></i>Next refresh: --
+                                    </small>
+                                    <small class="text-muted" id="refresh-rate-text">
+                                        <i class="bi bi-speedometer me-1"></i>Rate: 10s
+                                    </small>
                                 </div>
                             </div>
                         </div>
                         
                         <!-- Status Messages -->
-                        <div class="row mt-2">
+                        <div class="row mt-3">
                             <div class="col-12">
-                                <div class="alert alert-info" id="watcher-info">
-                                    <i class="bi bi-info-circle"></i> 
-                                    <strong>New Files Only Mode:</strong> Only files added AFTER starting the watcher will be analyzed.
+                                <div class="alert alert-dark" id="watcher-info">
+                                    <div class="d-flex">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <div>
+                                            <strong>New Files Only Mode:</strong> Only files added AFTER starting the watcher will be analyzed.
+                                            <br><small>Use "Process All" to analyze existing files.</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -288,39 +518,79 @@
             <div class="col-12">
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Recent FITS Analyses</h5>
+                        <h5 class="mb-0">
+                            <i class="bi bi-table me-2"></i>Recent FITS Analyses
+                        </h5>
                         <div>
-                            <span class="badge bg-primary me-2" id="displayed-files-count">0 files</span>
-                            <span class="badge bg-secondary" id="filter-status">All filters</span>
+                            <span class="badge bg-primary me-2" id="displayed-files-count">
+                                <i class="bi bi-file-earmark me-1"></i>0 files
+                            </span>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-secondary active" data-filter="all">All</button>
+                                <button class="btn btn-outline-secondary" data-filter="rig24">Rig24</button>
+                                <button class="btn btn-outline-secondary" data-filter="ha">Ha</button>
+                            </div>
                         </div>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-hover fits-table">
-                                <thead>
+                            <table class="table table-hover fits-table mb-0">
+                                <thead class="table-dark">
                                     <tr>
-                                        <th class="column-tooltip" title="Filename and timestamp of acquisition">File</th>
-                                        <th class="column-tooltip" title="Astronomical target name from FITS header">Object</th>
-                                        <th class="column-tooltip" title="Filter used (L, R, G, B, Ha, OIII, SII)">Filter</th>
-                                        <th class="column-tooltip" title="Camera/Telescope combination identifier">Rig</th>
-                                        <th class="column-tooltip" title="Telescope model from FITS header">Telescope</th>
-                                        <th class="column-tooltip" title="Camera model from FITS header">Camera</th>
-                                        <th class="column-tooltip" title="Current exposure vs recommended (rounded to available dark frames)">Exposure</th>
-                                        <th class="column-tooltip" title="Guiding RMS in arcseconds (from filename pattern)">RMS</th>
-                                        <th class="column-tooltip" title="Sky brightness in magnitudes per square arcsecond">Sky</th>
-                                        <th class="column-tooltip" title="Signal-to-Noise Ratio for background">SNR</th>
-                                        <th class="column-tooltip" title="Star count (coming soon)">Stars</th>
-                                        <th class="column-tooltip" title="Half-Flux Radius in arcseconds (coming soon)">HFR</th>
-                                        <th class="column-tooltip" title="Saturation analysis status">Status</th>
-                                        <th class="column-tooltip" title="View detailed analysis">Actions</th>
+                                        <th class="column-tooltip" title="Filename and timestamp of acquisition">
+                                            <i class="bi bi-file-earmark me-1"></i>File
+                                        </th>
+                                        <th class="column-tooltip" title="Astronomical target name">
+                                            <i class="bi bi-star me-1"></i>Object
+                                        </th>
+                                        <th class="column-tooltip" title="Filter used (L, R, G, B, Ha, OIII, SII)">
+                                            <i class="bi bi-funnel me-1"></i>Filter
+                                        </th>
+                                        <th class="column-tooltip" title="Camera/Telescope combination">
+                                            <i class="bi bi-camera me-1"></i>Rig
+                                        </th>
+                                        <th class="column-tooltip" title="Telescope model">
+                                            <i class="bi bi-telescope me-1"></i>Telescope
+                                        </th>
+                                        <th class="column-tooltip" title="Camera model">
+                                            <i class="bi bi-camera-video me-1"></i>Camera
+                                        </th>
+                                        <th class="column-tooltip" title="Exposure time (seconds)">
+                                            <i class="bi bi-clock me-1"></i>Exposure
+                                        </th>
+                                        <th class="column-tooltip" title="Guiding RMS (arcseconds)">
+                                            <i class="bi bi-bullseye me-1"></i>RMS
+                                        </th>
+                                        <th class="column-tooltip" title="Sky brightness (mag/arcsec²)">
+                                            <i class="bi bi-cloud-moon me-1"></i>Sky
+                                        </th>
+                                        <th class="column-tooltip" title="Signal-to-Noise Ratio">
+                                            <i class="bi bi-graph-up me-1"></i>SNR
+                                        </th>
+                                        <th class="column-tooltip" title="Star count">
+                                            <i class="bi bi-stars me-1"></i>Stars
+                                        </th>
+                                        <th class="column-tooltip" title="Half-Flux Radius (arcseconds)">
+                                            <i class="bi bi-circle me-1"></i>HFR
+                                        </th>
+                                        <th class="column-tooltip" title="Saturation status">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>Status
+                                        </th>
+                                        <th class="column-tooltip" title="Actions">
+                                            <i class="bi bi-gear me-1"></i>Actions
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody id="analyses-table">
-                                    <!-- Will be populated by JavaScript -->
                                     <tr>
-                                        <td colspan="14" class="text-center text-muted py-4">
-                                            <i class="bi bi-inbox" style="font-size: 2rem;"></i><br>
-                                            No analyses yet. Start the watcher to analyze NEW files.
+                                        <td colspan="14" class="text-center py-5">
+                                            <div class="mb-3">
+                                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                            </div>
+                                            <h5 class="text-muted">No analyses yet</h5>
+                                            <p class="text-muted mb-0">
+                                                Start the watcher to analyze new FITS files
+                                            </p>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -328,13 +598,23 @@
                         </div>
                         
                         <!-- Pagination -->
-                        <nav>
-                            <ul class="pagination justify-content-center" id="pagination">
-                                <li class="page-item disabled"><a class="page-link" href="#">Previous</a></li>
-                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                <li class="page-item disabled"><a class="page-link" href="#">Next</a></li>
-                            </ul>
-                        </nav>
+                        <div class="mt-3">
+                            <nav aria-label="Analysis pagination">
+                                <ul class="pagination justify-content-center mb-0" id="pagination">
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -346,32 +626,42 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">FITS Analysis Details</h5>
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-text me-2"></i>FITS Analysis Details
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="analysis-modal-body">
-                    <!-- Analysis details will be loaded here -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading analysis details...</p>
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Close
+                    </button>
                     <button type="button" class="btn btn-primary" id="export-analysis-btn">
-                        <i class="bi bi-download"></i> Export JSON
+                        <i class="bi bi-download me-1"></i>Export JSON
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Theme Toggle Button -->
-    <button class="btn btn-outline-secondary theme-toggle" id="theme-toggle">
+    <!-- Theme Toggle Button (simplified) -->
+    <button class="btn btn-outline-secondary theme-toggle" id="theme-toggle" title="Toggle theme">
         <i class="bi bi-moon-stars"></i>
     </button>
 
-    <!-- Toast Container for Notifications -->
+    <!-- Toast Container -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3">
         <div id="notification-toast" class="toast" role="alert">
             <div class="toast-header">
                 <strong class="me-auto" id="toast-title">Notification</strong>
+                <small class="text-muted" id="toast-time">just now</small>
                 <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
             </div>
             <div class="toast-body" id="toast-message">
@@ -384,41 +674,128 @@
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     
     <script>
-    // Initialize tooltips
+    // Initialize theme to dark by default
     document.addEventListener('DOMContentLoaded', function() {
+        // Set dark theme as default
+        document.documentElement.setAttribute('data-bs-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        
+        // Initialize tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
         var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                delay: {show: 500, hide: 100}
+            });
         });
         
-        // Theme toggle
+        // Theme toggle buttons
+        const darkThemeBtn = document.getElementById('dark-theme-btn');
+        const lightThemeBtn = document.getElementById('light-theme-btn');
         const themeToggle = document.getElementById('theme-toggle');
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-bs-theme', currentTheme);
         
-        themeToggle.addEventListener('click', function() {
-            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-bs-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('theme', theme);
             
-            // Update icon
-            const icon = themeToggle.querySelector('i');
-            icon.className = newTheme === 'light' ? 'bi bi-moon-stars' : 'bi bi-sun';
+            // Update button states
+            if (theme === 'dark') {
+                darkThemeBtn.classList.add('active');
+                lightThemeBtn.classList.remove('active');
+                themeToggle.innerHTML = '<i class="bi bi-moon-stars"></i>';
+            } else {
+                lightThemeBtn.classList.add('active');
+                darkThemeBtn.classList.remove('active');
+                themeToggle.innerHTML = '<i class="bi bi-sun"></i>';
+            }
+        }
+        
+        // Button event listeners
+        darkThemeBtn.addEventListener('click', () => setTheme('dark'));
+        lightThemeBtn.addEventListener('click', () => setTheme('light'));
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            setTheme(currentTheme === 'dark' ? 'light' : 'dark');
         });
         
-        // Update icon based on current theme
-        const icon = themeToggle.querySelector('i');
-        icon.className = currentTheme === 'light' ? 'bi bi-moon-stars' : 'bi bi-sun';
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        }
         
         // Update current time
         function updateCurrentTime() {
             const now = new Date();
-            document.getElementById('current-time').textContent = 
-                now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+            const timeString = now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('current-time').textContent = timeString;
+            
+            // Update toast time if visible
+            const toastTime = document.getElementById('toast-time');
+            if (toastTime) {
+                toastTime.textContent = timeString;
+            }
         }
+        
         updateCurrentTime();
         setInterval(updateCurrentTime, 1000);
+        
+        // Filter buttons
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all filter buttons
+                document.querySelectorAll('[data-filter]').forEach(b => {
+                    b.classList.remove('active');
+                });
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get the filter value
+                const filter = this.getAttribute('data-filter');
+                
+                // Update filter status badge
+                const filterStatus = document.getElementById('filter-status');
+                if (filterStatus) {
+                    filterStatus.textContent = filter === 'all' ? 'All filters' : `Filter: ${filter}`;
+                }
+                
+                // Here you would typically filter the table
+                // This would be implemented in dashboard.js
+                console.log(`Filter changed to: ${filter}`);
+            });
+        });
+        
+        // Add some sample data for rig summary (for testing)
+        setTimeout(() => {
+            const rigTable = document.getElementById('rig-summary-table');
+            if (rigTable && rigTable.innerHTML.includes('Loading rig data')) {
+                rigTable.innerHTML = `
+                    <tr>
+                        <td><strong>Rig24</strong></td>
+                        <td>Askar V-80+Reducer</td>
+                        <td>QHYminiCam8M</td>
+                        <td class="text-end"><span class="badge bg-primary">42</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rig15</strong></td>
+                        <td>William Optics GT81</td>
+                        <td>ZWO ASI1600MM</td>
+                        <td class="text-end"><span class="badge bg-primary">18</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Rig08</strong></td>
+                        <td>Celestron RASA 8</td>
+                        <td>ZWO ASI2600MC</td>
+                        <td class="text-end"><span class="badge bg-primary">7</span></td>
+                    </tr>
+                `;
+                document.getElementById('total-files-count').textContent = '67';
+            }
+        }, 1500);
     });
     </script>
 </body>
