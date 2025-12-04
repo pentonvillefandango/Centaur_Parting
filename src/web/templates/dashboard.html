@@ -985,11 +985,7 @@
         updateCurrentTime();
         setInterval(updateCurrentTime, 1000);
         
-        // Global data store for filtering
-        let allAnalysesData = [];
-        let filteredAnalysesData = [];
-        
-        // View toggle buttons
+        // View toggle buttons - FIXED: Only handle UI, no data loading
         document.querySelectorAll('.view-toggle-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 // Remove active class from all view toggle buttons
@@ -1007,11 +1003,11 @@
                 const detailedTable = document.getElementById('detailed-view-table');
                 
                 if (viewType === 'compact') {
-                    compactTable.classList.remove('d-none');
-                    detailedTable.classList.add('d-none');
+                    if (compactTable) compactTable.classList.remove('d-none');
+                    if (detailedTable) detailedTable.classList.add('d-none');
                 } else {
-                    compactTable.classList.add('d-none');
-                    detailedTable.classList.remove('d-none');
+                    if (compactTable) compactTable.classList.add('d-none');
+                    if (detailedTable) detailedTable.classList.remove('d-none');
                 }
                 
                 // Update current view in localStorage
@@ -1019,8 +1015,9 @@
                 
                 console.log(`Switched to ${viewType} view`);
                 
-                // Re-render the current view with filtered data
-                renderCurrentView();
+                // IMPORTANT: DO NOT reload or reinitialize data here
+                // The data should already be loaded by dashboard.js
+                // If rendering is needed, dashboard.js will handle it
             });
         });
         
@@ -1028,10 +1025,22 @@
         const preferredView = localStorage.getItem('preferred-view') || 'compact';
         const viewBtn = document.querySelector(`.view-toggle-btn[data-view="${preferredView}"]`);
         if (viewBtn) {
-            viewBtn.click(); // This will trigger the view switch
+            // Only set UI state, don't trigger data reload
+            viewBtn.classList.add('active');
+            
+            const compactTable = document.getElementById('compact-view-table');
+            const detailedTable = document.getElementById('detailed-view-table');
+            
+            if (preferredView === 'compact') {
+                if (compactTable) compactTable.classList.remove('d-none');
+                if (detailedTable) detailedTable.classList.add('d-none');
+            } else {
+                if (compactTable) compactTable.classList.add('d-none');
+                if (detailedTable) detailedTable.classList.remove('d-none');
+            }
         }
         
-        // Filter buttons - Rig
+        // Filter buttons - FIXED: These should now trigger functions in dashboard.js
         document.querySelectorAll('[data-filter-rig]').forEach(btn => {
             btn.addEventListener('click', function() {
                 // Remove active class from all rig filter buttons
@@ -1040,13 +1049,9 @@
                 });
                 // Add active class to clicked button
                 this.classList.add('active');
-                
-                // Apply filters
-                applyFilters();
             });
         });
         
-        // Filter buttons - Filter Type
         document.querySelectorAll('[data-filter-type]').forEach(btn => {
             btn.addEventListener('click', function() {
                 // Remove active class from all type filter buttons
@@ -1055,13 +1060,9 @@
                 });
                 // Add active class to clicked button
                 this.classList.add('active');
-                
-                // Apply filters
-                applyFilters();
             });
         });
         
-        // Filter buttons - Status
         document.querySelectorAll('[data-filter-status]').forEach(btn => {
             btn.addEventListener('click', function() {
                 // Remove active class from all status filter buttons
@@ -1070,368 +1071,13 @@
                 });
                 // Add active class to clicked button
                 this.classList.add('active');
-                
-                // Apply filters
-                applyFilters();
             });
         });
         
-        // Function to get current filter values
-        function getCurrentFilters() {
-            return {
-                rig: document.querySelector('[data-filter-rig].active')?.getAttribute('data-filter-rig') || 'all',
-                filterType: document.querySelector('[data-filter-type].active')?.getAttribute('data-filter-type') || 'all',
-                status: document.querySelector('[data-filter-status].active')?.getAttribute('data-filter-status') || 'all'
-            };
-        }
+        // CRITICAL: REMOVED all sample data and data initialization from here
+        // All data loading should come from dashboard.js
         
-        // Function to update filter display text
-        function updateFilterDisplay(filters) {
-            const displayElement = document.getElementById('current-filter-display');
-            let filterTexts = [];
-            
-            if (filters.rig !== 'all') filterTexts.push(`${filters.rig}`);
-            if (filters.filterType !== 'all') filterTexts.push(`${filters.filterType} filter`);
-            if (filters.status !== 'all') filterTexts.push(`${filters.status} status`);
-            
-            if (filterTexts.length === 0) {
-                displayElement.textContent = 'All files';
-            } else {
-                displayElement.textContent = filterTexts.join(', ');
-            }
-        }
-        
-        // Function to filter data based on current filters
-        function filterData(data, filters) {
-            return data.filter(item => {
-                // Rig filter
-                if (filters.rig !== 'all' && item.rig !== filters.rig) {
-                    return false;
-                }
-                
-                // Filter type filter
-                if (filters.filterType !== 'all' && item.filter !== filters.filterType) {
-                    return false;
-                }
-                
-                // Status filter
-                if (filters.status !== 'all' && item.status !== filters.status) {
-                    return false;
-                }
-                
-                return true;
-            });
-        }
-        
-        // Function to apply all filters
-        function applyFilters() {
-            const filters = getCurrentFilters();
-            
-            // Update filter display
-            updateFilterDisplay(filters);
-            
-            // Filter the data
-            filteredAnalysesData = filterData(allAnalysesData, filters);
-            
-            // Update displayed count
-            document.getElementById('displayed-files-count').innerHTML = 
-                `<i class="bi bi-file-earmark me-1"></i>${filteredAnalysesData.length} files`;
-            
-            // Re-render the current view
-            renderCurrentView();
-        }
-        
-        // Function to render the current view (compact or detailed)
-        function renderCurrentView() {
-            const currentView = localStorage.getItem('preferred-view') || 'compact';
-            
-            if (currentView === 'compact') {
-                renderCompactView();
-            } else {
-                renderDetailedView();
-            }
-        }
-        
-        // Function to create detailed view row WITH MINI-TABLE
-        function createDetailedRow(data) {
-            return `
-                <tr class="analysis-card">
-                    <td>
-                        <div class="detailed-file-display">
-                            <div class="filename-line" title="${data.filename}">
-                                ${data.filename}
-                            </div>
-                            <div class="metrics-mini-table">
-                                <div class="metric-header-row">
-                                    <div class="metric-header-cell"><i class="bi bi-star"></i>Object</div>
-                                    <div class="metric-header-cell"><i class="bi bi-funnel"></i>Filter</div>
-                                    <div class="metric-header-cell"><i class="bi bi-camera"></i>Rig</div>
-                                    <div class="metric-header-cell"><i class="bi bi-telescope"></i>Telescope</div>
-                                    <div class="metric-header-cell"><i class="bi bi-camera-video"></i>Camera</div>
-                                    <div class="metric-header-cell"><i class="bi bi-clock"></i>Exposure</div>
-                                    <div class="metric-header-cell"><i class="bi bi-bullseye"></i>RMS</div>
-                                </div>
-                                <div class="metric-value-row">
-                                    <div class="metric-value-cell">${data.object || 'N/A'}</div>
-                                    <div class="metric-value-cell"><span class="badge filter-${data.filter}">${data.filter}</span></div>
-                                    <div class="metric-value-cell"><span class="badge rig-${data.rig}">${data.rig}</span></div>
-                                    <div class="metric-value-cell">${data.telescope || 'N/A'}</div>
-                                    <div class="metric-value-cell">${data.camera || 'N/A'}</div>
-                                    <div class="metric-value-cell"><span class="badge ${data.exposureClass}">${data.exposure}s</span></div>
-                                    <div class="metric-value-cell"><span class="badge bg-info">${data.rms}"</span></div>
-                                </div>
-                                <div class="metric-header-row">
-                                    <div class="metric-header-cell"><i class="bi bi-cloud-moon"></i>Sky</div>
-                                    <div class="metric-header-cell"><i class="bi bi-graph-up"></i>SNR</div>
-                                    <div class="metric-header-cell"><i class="bi bi-stars"></i>Stars</div>
-                                    <div class="metric-header-cell"><i class="bi bi-circle"></i>HFR</div>
-                                    <div class="metric-header-cell"><i class="bi bi-exclamation-triangle"></i>Status</div>
-                                    <div class="metric-header-cell"></div>
-                                    <div class="metric-header-cell"></div>
-                                </div>
-                                <div class="metric-value-row">
-                                    <div class="metric-value-cell"><span class="badge ${data.skyClass}">${data.sky}</span></div>
-                                    <div class="metric-value-cell"><span class="badge bg-success">${data.snr}</span></div>
-                                    <div class="metric-value-cell"><span class="badge bg-secondary">${data.stars}</span></div>
-                                    <div class="metric-value-cell"><span class="badge bg-secondary">${data.hfr}"</span></div>
-                                    <div class="metric-value-cell"><span class="badge status-${data.status}">${data.status}</span></div>
-                                    <div class="metric-value-cell"></div>
-                                    <div class="metric-value-cell"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-info view-analysis" data-filename="${data.filename}">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-        
-        // Function to create compact view row
-        function createCompactRow(data) {
-            return `
-                <tr class="analysis-card">
-                    <td class="filename-line" title="${data.filename}">
-                        ${data.filename}
-                    </td>
-                    <td>${data.object || 'N/A'}</td>
-                    <td><span class="badge filter-${data.filter}">${data.filter}</span></td>
-                    <td><span class="badge rig-${data.rig}">${data.rig}</span></td>
-                    <td>${data.telescope || 'N/A'}</td>
-                    <td>${data.camera || 'N/A'}</td>
-                    <td><span class="badge ${data.exposureClass}">${data.exposure}s</span></td>
-                    <td><span class="badge bg-info">${data.rms}"</span></td>
-                    <td><span class="badge ${data.skyClass}">${data.sky}</span></td>
-                    <td><span class="badge bg-success">${data.snr}</span></td>
-                    <td><span class="badge bg-secondary">${data.stars}</span></td>
-                    <td><span class="badge bg-secondary">${data.hfr}"</span></td>
-                    <td><span class="badge status-${data.status}">${data.status}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-info view-analysis" data-filename="${data.filename}">
-                            <i class="bi bi-eye"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-        
-        // Function to render compact view
-        function renderCompactView() {
-            const table = document.getElementById('compact-analyses-table');
-            if (!table) return;
-            
-            if (filteredAnalysesData.length === 0) {
-                table.innerHTML = `
-                    <tr>
-                        <td colspan="14" class="text-center py-5">
-                            <div class="mb-3">
-                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
-                            </div>
-                            <h5 class="text-muted">No matching analyses</h5>
-                            <p class="text-muted mb-0">
-                                Try changing your filter settings
-                            </p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            let html = '';
-            filteredAnalysesData.forEach(data => {
-                html += createCompactRow(data);
-            });
-            table.innerHTML = html;
-            attachViewButtonListeners();
-        }
-        
-        // Function to render detailed view
-        function renderDetailedView() {
-            const table = document.getElementById('detailed-analyses-table');
-            if (!table) return;
-            
-            if (filteredAnalysesData.length === 0) {
-                table.innerHTML = `
-                    <tr>
-                        <td colspan="2" class="text-center py-5">
-                            <div class="mb-3">
-                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
-                            </div>
-                            <h5 class="text-muted">No matching analyses</h5>
-                            <p class="text-muted mb-0">
-                                Try changing your filter settings
-                            </p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            let html = '';
-            filteredAnalysesData.forEach(data => {
-                html += createDetailedRow(data);
-            });
-            table.innerHTML = html;
-            attachViewButtonListeners();
-        }
-        
-        // Function to attach event listeners to view buttons
-        function attachViewButtonListeners() {
-            document.querySelectorAll('.view-analysis').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const filename = this.getAttribute('data-filename');
-                    console.log(`View analysis for: ${filename}`);
-                    // This would trigger the modal load in dashboard.js
-                });
-            });
-        }
-        
-        // Sample data for testing
-        const sampleData = [
-            {
-                filename: "NGC7000_Ha_300s_G80_RMS_0.35_2024-01-15T22:30:45.fits",
-                object: "NGC 7000",
-                filter: "Ha",
-                rig: "Rig24",
-                telescope: "Askar V-80+Reducer",
-                camera: "QHYminiCam8M",
-                exposure: "300",
-                exposureClass: "bg-success",
-                rms: "0.35",
-                sky: "20.8",
-                skyClass: "sky-badge-dark",
-                snr: "42.6",
-                stars: "127",
-                hfr: "2.1",
-                status: "Good"
-            },
-            {
-                filename: "M31_L_120s_G75_RMS_0.42_2024-01-15T23:15:22.fits",
-                object: "M31",
-                filter: "L",
-                rig: "Rig15",
-                telescope: "William Optics GT81",
-                camera: "ZWO ASI1600MM",
-                exposure: "120",
-                exposureClass: "bg-warning",
-                rms: "0.42",
-                sky: "19.2",
-                skyClass: "sky-badge-bright",
-                snr: "28.4",
-                stars: "89",
-                hfr: "1.8",
-                status: "Moderate"
-            },
-            {
-                filename: "M42_OIII_180s_G85_RMS_0.28_2024-01-16T01:45:10.fits",
-                object: "M42",
-                filter: "OIII",
-                rig: "Rig08",
-                telescope: "Celestron RASA 8",
-                camera: "ZWO ASI2600MC",
-                exposure: "180",
-                exposureClass: "bg-success",
-                rms: "0.28",
-                sky: "21.2",
-                skyClass: "sky-badge-dark",
-                snr: "51.3",
-                stars: "156",
-                hfr: "1.5",
-                status: "Good"
-            },
-            {
-                filename: "IC434_Ha_600s_G90_RMS_0.55_2024-01-16T03:20:15.fits",
-                object: "IC 434",
-                filter: "Ha",
-                rig: "Rig24",
-                telescope: "Askar V-80+Reducer",
-                camera: "QHYminiCam8M",
-                exposure: "600",
-                exposureClass: "bg-danger",
-                rms: "0.55",
-                sky: "18.5",
-                skyClass: "sky-badge-bright",
-                snr: "15.2",
-                stars: "45",
-                hfr: "3.2",
-                status: "Critical"
-            },
-            {
-                filename: "M45_R_90s_G70_RMS_0.31_2024-01-16T04:10:30.fits",
-                object: "M45",
-                filter: "R",
-                rig: "Rig15",
-                telescope: "William Optics GT81",
-                camera: "ZWO ASI1600MM",
-                exposure: "90",
-                exposureClass: "bg-warning",
-                rms: "0.31",
-                sky: "20.1",
-                skyClass: "sky-badge-dark",
-                snr: "35.8",
-                stars: "112",
-                hfr: "1.9",
-                status: "Good"
-            }
-        ];
-        
-        // Initialize data
-        allAnalysesData = [...sampleData];
-        filteredAnalysesData = [...sampleData];
-        
-        // Update rig summary
-        setTimeout(() => {
-            const rigTable = document.getElementById('rig-summary-table');
-            if (rigTable && rigTable.innerHTML.includes('Loading rig data')) {
-                rigTable.innerHTML = `
-                    <tr>
-                        <td><strong>Rig24</strong></td>
-                        <td>Askar V-80+Reducer</td>
-                        <td>QHYminiCam8M</td>
-                        <td class="text-end"><span class="badge bg-primary">2</span></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Rig15</strong></td>
-                        <td>William Optics GT81</td>
-                        <td>ZWO ASI1600MM</td>
-                        <td class="text-end"><span class="badge bg-primary">2</span></td>
-                    </tr>
-                    <tr>
-                        <td><strong>Rig08</strong></td>
-                        <td>Celestron RASA 8</td>
-                        <td>ZWO ASI2600MC</td>
-                        <td class="text-end"><span class="badge bg-primary">1</span></td>
-                    </tr>
-                `;
-                document.getElementById('total-files-count').textContent = '5';
-                
-                // Apply initial filters and render
-                applyFilters();
-            }
-        }, 500);
+        console.log('Dashboard HTML initialized - waiting for dashboard.js to load real data');
     });
     </script>
 </body>
