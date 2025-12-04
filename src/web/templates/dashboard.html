@@ -128,31 +128,75 @@
             display: table-row;
         }
         
-        .metric-header-cell {
-            display: table-cell;
-            padding: 2px 8px 2px 0;
-            color: var(--metric-header-color);
-            font-weight: 600;
-            white-space: nowrap;
-            border-bottom: 1px dashed rgba(13, 202, 240, 0.3);
-            vertical-align: bottom;
-        }
-        
-        .metric-value-cell {
-            display: table-cell;
-            padding: 2px 8px 2px 0;
-            color: var(--metrics-color);
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            white-space: nowrap;
-            vertical-align: top;
-        }
-        
-        .metric-header-cell i {
-            margin-right: 4px;
-            font-size: 0.7rem;
-            opacity: 0.8;
-        }
-        
+     /* ===== DETAILED VIEW METRIC HEADERS AND VALUES ===== */
+
+/* Make metric headers (Object, Filter, Rig, etc.) same size as table headers */
+.metric-header-cell {
+    display: table-cell;
+    padding: 4px 8px 4px 0;
+    color: var(--metric-header-color);
+    font-weight: 600;
+    white-space: nowrap;
+    border-bottom: 1px dashed rgba(13, 202, 240, 0.3);
+    vertical-align: bottom;
+    font-size: 1rem; /* NEW: Same as "File & Metrics" header */
+}
+
+/* Make metric values same size as table headers */
+.metric-value-cell {
+    display: table-cell;
+    padding: 4px 8px 4px 0;
+    color: var(--metrics-color);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    white-space: nowrap;
+    vertical-align: top;
+    font-size: 1rem; /* NEW: Same as "File & Metrics" header */
+}
+
+/* Make sure the icons in metric headers match size too */
+.metric-header-cell i {
+    margin-right: 4px;
+    font-size: 0.9rem; /* NEW: Larger icons */
+    opacity: 0.8;
+}
+
+/* Adjust the mini-table spacing for larger text */
+.metrics-mini-table {
+    display: table;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 6px; /* NEW: More vertical spacing */
+    font-size: 0.75rem;
+}
+
+/* Optional: Make the filename slightly larger to match */
+.detailed-file-display .filename-line {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem; /* NEW: Slightly larger */
+    font-weight: 600;
+    color: var(--filename-color);
+    margin-bottom: 12px;
+    word-break: break-all;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* For consistency, also update the responsive version */
+@media (max-width: 768px) {
+    .metric-header-cell,
+    .metric-value-cell {
+        font-size: 0.9rem; /* Slightly smaller on mobile but still legible */
+        padding: 3px 6px 3px 0;
+    }
+    
+    .metric-header-cell i {
+        font-size: 0.85rem;
+    }
+    
+    .metrics-mini-table {
+        font-size: 0.9rem; /* Ensure consistent sizing */
+    }
+}  
         .badge-exposure-good { background-color: #198754; }
         .badge-exposure-high { background-color: #fd7e14; }
         .badge-exposure-low { background-color: #dc3545; }
