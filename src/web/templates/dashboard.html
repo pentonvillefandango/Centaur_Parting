@@ -695,16 +695,103 @@
     font-weight: inherit !important;
     display: inline !important;
 }
-    
+   /* ===== NAVBAR TABS STYLING ===== */
+
+/* Navbar Tabs Container */
+.navbar .nav-tabs {
+    flex-wrap: nowrap;
+    margin-bottom: 0;
+}
+
+/* Tab Links */
+.navbar .nav-tabs .nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: 0;
+    transition: all 0.2s ease;
+}
+
+.navbar .nav-tabs .nav-link:hover {
+    color: white;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.navbar .nav-tabs .nav-link.active {
+    color: white;
+    background: transparent;
+    border-bottom: 3px solid #0dcaf0;
+    font-weight: 600;
+}
+
+/* Light theme adjustments */
+[data-bs-theme="light"] .navbar .nav-tabs .nav-link {
+    color: rgba(0, 0, 0, 0.75);
+}
+
+[data-bs-theme="light"] .navbar .nav-tabs .nav-link:hover {
+    color: black;
+    border-bottom: 3px solid rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-bs-theme="light"] .navbar .nav-tabs .nav-link.active {
+    color: black;
+    border-bottom: 3px solid #0d6efd;
+}
+
+/* Tab content visibility */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Make sure current time doesn't wrap */
+.navbar-text {
+    white-space: nowrap;
+} 
 </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
         <div class="container-fluid">
             <a class="navbar-brand" href="/">
-                <i class="bi bi-stars me-2"></i> Centaur Parting
+                <i class="bi bi-stars me-2"></i>Centaur Parting
                 <small class="ms-2 opacity-75">Astrophotography Tracker</small>
             </a>
+            
+            <!-- Tabs Navigation -->
+            <ul class="navbar-nav me-auto nav-tabs border-0">
+                <li class="nav-item">
+                    <a class="nav-link active" href="#" id="fits-analysis-tab">
+                        <i class="bi bi-table me-1"></i>FITS Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="historical-tab">
+                        <i class="bi bi-clock-history me-1"></i>Historical
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="dark-analysis-tab">
+                        <i class="bi bi-moon-stars me-1"></i>Dark Analysis
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="flat-analysis-tab">
+                        <i class="bi bi-sun me-1"></i>Flat Analysis
+                    </a>
+                </li>
+            </ul>
+            
             <div class="navbar-text">
                 <span class="status-indicator status-active"></span>
                 <span id="connection-status" class="badge bg-success me-2">Connected</span>
@@ -712,7 +799,7 @@
             </div>
         </div>
     </nav>
-
+   
     <div class="container-fluid">
         <!-- Dashboard Stats -->
         <div class="row mb-4">
@@ -1261,7 +1348,172 @@
         
         // CRITICAL: REMOVED all sample data and data initialization from here
         // All data loading should come from dashboard.js
+        // ===== TAB SWITCHING FUNCTIONALITY =====
+        // Get all tab buttons
+        const fitsTab = document.getElementById('fits-analysis-tab');
+        const historicalTab = document.getElementById('historical-tab');
+        const darkTab = document.getElementById('dark-analysis-tab');
+        const flatTab = document.getElementById('flat-analysis-tab');
         
+        // Create content sections for new tabs
+        function createTabContent() {
+            // Get the main content container
+            const mainContent = document.querySelector('.container-fluid');
+            
+            // Wrap current content with FITS Analysis tab wrapper
+            const fitsContent = document.createElement('div');
+            fitsContent.id = 'fits-analysis-content';
+            fitsContent.className = 'tab-content active';
+            
+            // Move all current content into the fitsContent wrapper
+            while (mainContent.firstChild) {
+                fitsContent.appendChild(mainContent.firstChild);
+            }
+            
+            // Add fitsContent back to mainContent
+            mainContent.appendChild(fitsContent);
+            
+            // Create Historical tab content
+            const historicalContent = document.createElement('div');
+            historicalContent.id = 'historical-content';
+            historicalContent.className = 'tab-content';
+            historicalContent.innerHTML = `
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historical Data Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Historical data analysis will be available soon.</p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            This section will show historical trends, charts, and long-term statistics.
+                        </div>
+                    </div>
+                </div>
+            `;
+            mainContent.appendChild(historicalContent);
+            
+            // Create Dark Analysis tab content
+            const darkContent = document.createElement('div');
+            darkContent.id = 'dark-analysis-content';
+            darkContent.className = 'tab-content';
+            darkContent.innerHTML = `
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-moon-stars me-2"></i>Dark Frame Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Dark frame calibration analysis will be available soon.</p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            This section will analyze dark frames for hot pixels, noise patterns, and calibration quality.
+                        </div>
+                    </div>
+                </div>
+            `;
+            mainContent.appendChild(darkContent);
+            
+            // Create Flat Analysis tab content
+            const flatContent = document.createElement('div');
+            flatContent.id = 'flat-analysis-content';
+            flatContent.className = 'tab-content';
+            flatContent.innerHTML = `
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-sun me-2"></i>Flat Frame Analysis</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">Flat frame calibration analysis will be available soon.</p>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            This section will analyze flat frames for vignetting, dust spots, and illumination patterns.
+                        </div>
+                    </div>
+                </div>
+            `;
+            mainContent.appendChild(flatContent);
+        }
+        
+        // Function to switch tabs
+        function switchTab(activeTabId) {
+            // Remove active class from all tabs
+            [fitsTab, historicalTab, darkTab, flatTab].forEach(tab => {
+                if (tab) tab.classList.remove('active');
+            });
+            
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Activate clicked tab
+            const activeTab = document.getElementById(activeTabId);
+            if (activeTab) {
+                activeTab.classList.add('active');
+            }
+            
+            // Show corresponding content
+            const contentId = activeTabId.replace('-tab', '-content');
+            const activeContent = document.getElementById(contentId);
+            if (activeContent) {
+                activeContent.classList.add('active');
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('activeTab', activeTabId);
+        }
+        
+        // Create tab content
+        createTabContent();
+        
+        // Add click event listeners
+        if (fitsTab) {
+            fitsTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchTab('fits-analysis-tab');
+            });
+        }
+        
+        if (historicalTab) {
+            historicalTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchTab('historical-tab');
+            });
+        }
+        
+        if (darkTab) {
+            darkTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchTab('dark-analysis-tab');
+            });
+        }
+        
+        if (flatTab) {
+            flatTab.addEventListener('click', function(e) {
+                e.preventDefault();
+                switchTab('flat-analysis-tab');
+            });
+        }
+        
+        // Load saved tab from localStorage
+        const savedTab = localStorage.getItem('activeTab') || 'fits-analysis-tab';
+        const savedTabElement = document.getElementById(savedTab);
+        if (savedTabElement && savedTab !== 'fits-analysis-tab') {
+            switchTab(savedTab);
+        }
+               // DEBUG: Check if tabs are found
+        console.log('DEBUG: Looking for tabs...');
+        console.log('fitsTab:', document.getElementById('fits-analysis-tab'));
+        console.log('historicalTab:', document.getElementById('historical-tab'));
+        console.log('darkTab:', document.getElementById('dark-analysis-tab'));
+        console.log('flatTab:', document.getElementById('flat-analysis-tab'));
+        
+        console.log('DEBUG: All elements with nav-link class:');
+        document.querySelectorAll('.nav-link').forEach((link, i) => {
+            console.log(`Link ${i}:`, link.id, link.textContent);
+        }); 
+        console.log('Tab switching functionality loaded');       
+ 
         console.log('Dashboard HTML initialized - waiting for dashboard.js to load real data');
     });
     </script>

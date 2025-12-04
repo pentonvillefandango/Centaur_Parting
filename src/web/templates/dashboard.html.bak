@@ -128,31 +128,75 @@
             display: table-row;
         }
         
-        .metric-header-cell {
-            display: table-cell;
-            padding: 2px 8px 2px 0;
-            color: var(--metric-header-color);
-            font-weight: 600;
-            white-space: nowrap;
-            border-bottom: 1px dashed rgba(13, 202, 240, 0.3);
-            vertical-align: bottom;
-        }
-        
-        .metric-value-cell {
-            display: table-cell;
-            padding: 2px 8px 2px 0;
-            color: var(--metrics-color);
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            white-space: nowrap;
-            vertical-align: top;
-        }
-        
-        .metric-header-cell i {
-            margin-right: 4px;
-            font-size: 0.7rem;
-            opacity: 0.8;
-        }
-        
+     /* ===== DETAILED VIEW METRIC HEADERS AND VALUES ===== */
+
+/* Make metric headers (Object, Filter, Rig, etc.) same size as table headers */
+.metric-header-cell {
+    display: table-cell;
+    padding: 4px 8px 4px 0;
+    color: var(--metric-header-color);
+    font-weight: 600;
+    white-space: nowrap;
+    border-bottom: 1px dashed rgba(13, 202, 240, 0.3);
+    vertical-align: bottom;
+    font-size: 1rem; /* NEW: Same as "File & Metrics" header */
+}
+
+/* Make metric values same size as table headers */
+.metric-value-cell {
+    display: table-cell;
+    padding: 4px 8px 4px 0;
+    color: var(--metrics-color);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    white-space: nowrap;
+    vertical-align: top;
+    font-size: 1rem; /* NEW: Same as "File & Metrics" header */
+}
+
+/* Make sure the icons in metric headers match size too */
+.metric-header-cell i {
+    margin-right: 4px;
+    font-size: 0.9rem; /* NEW: Larger icons */
+    opacity: 0.8;
+}
+
+/* Adjust the mini-table spacing for larger text */
+.metrics-mini-table {
+    display: table;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 6px; /* NEW: More vertical spacing */
+    font-size: 0.75rem;
+}
+
+/* Optional: Make the filename slightly larger to match */
+.detailed-file-display .filename-line {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem; /* NEW: Slightly larger */
+    font-weight: 600;
+    color: var(--filename-color);
+    margin-bottom: 12px;
+    word-break: break-all;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* For consistency, also update the responsive version */
+@media (max-width: 768px) {
+    .metric-header-cell,
+    .metric-value-cell {
+        font-size: 0.9rem; /* Slightly smaller on mobile but still legible */
+        padding: 3px 6px 3px 0;
+    }
+    
+    .metric-header-cell i {
+        font-size: 0.85rem;
+    }
+    
+    .metrics-mini-table {
+        font-size: 0.9rem; /* Ensure consistent sizing */
+    }
+}  
         .badge-exposure-good { background-color: #198754; }
         .badge-exposure-high { background-color: #fd7e14; }
         .badge-exposure-low { background-color: #dc3545; }
@@ -470,61 +514,189 @@
             to { opacity: 1; }
         }
         
-        /* Watcher card specific styles */
-        .watcher-controls-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-top: 15px;
-        }
-        
-        .watcher-controls-grid .btn {
-            width: 100%;
-            padding: 6px 4px;
-            font-size: 0.75rem;
-        }
-        
-        .refresh-controls-small {
-            margin-top: 15px;
-        }
-        
-        .refresh-controls-small .form-control,
-        .refresh-controls-small .form-select {
-            padding: 4px 8px;
-            font-size: 0.8rem;
-            height: 30px;
-        }
-        
-        .refresh-controls-small .form-check {
-            margin-top: 8px;
-            font-size: 0.8rem;
-        }
-        
-        .progress-small {
-            height: 6px;
-            margin-top: 8px;
-        }
-        
-        .refresh-info-small {
-            font-size: 0.7rem;
-            margin-top: 4px;
-            opacity: 0.8;
-        }
-        
-        .card-title-small {
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-        }
-        
-        .card-text-small {
-            font-size: 0.8rem;
-            margin-bottom: 5px;
-        }
-        
-        .watcher-card {
-            min-height: 280px;
-        }
-    </style>
+/* ===== WATCHER 2x2 BUTTON GRID ===== */
+.watcher-split {
+    display: flex;
+    height: 100%;
+    gap: 15px;
+}
+
+.watcher-left {
+    flex: 1;
+}
+
+.watcher-right {
+    min-width: 350px; /* DOUBLED from 180px to 350px */
+    width: 350px; /* Fixed width instead of min-width */
+}
+
+/* 2x2 Button Grid Layout */
+.btn-grid {
+    display: grid;
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px; /* Slightly increased gap */
+    height: 100%;
+}
+
+.btn-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px; /* Slightly increased gap */
+}
+
+.btn-grid-item {
+    padding: 15px 10px; /* Increased padding for bigger buttons */
+    font-size: 1.1rem; /* Bigger text (from 0.9rem) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    min-height: 60px; /* Minimum height for larger buttons */
+}
+
+.btn-grid-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-grid-item .bi {
+    font-size: 1.4rem; /* Bigger icons (from 1rem) */
+    margin-right: 8px; /* More space between icon and text */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .btn-grid-item {
+        padding: 12px 8px;
+        font-size: 1rem;
+        min-height: 55px;
+    }
+    
+    .watcher-right {
+        min-width: 280px; /* Still wider on mobile */
+        width: 280px;
+    }
+    
+    .btn-grid-item .bi {
+        font-size: 1.2rem;
+        margin-right: 6px;
+    }
+    
+    .btn-grid,
+    .btn-row {
+        gap: 8px; /* Slightly smaller gaps on mobile */
+    }
+}     
+    
+/* ===== DETAILED VIEW UNIFIED COLORS ===== */
+
+/* Make ALL text in detailed view use the same color as column headers */
+#detailed-view-table th,
+#detailed-view-table td,
+.metric-header-cell,
+.metric-value-cell,
+.detailed-file-display .filename-line {
+    color: var(--bs-body-color); /* All use the same body text color */
+}
+
+/* Optional: Keep a slight visual distinction for metric headers if desired */
+.metric-header-cell {
+    font-weight: 600; /* Keep them bold for hierarchy */
+    opacity: 0.9; /* Slightly lighter than pure body color if needed */
+}
+
+/* Ensure metric values keep their monospace font for data */
+.metric-value-cell {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* If you want the metric headers to keep SOME color distinction, use this instead: */
+/*
+.metric-header-cell {
+    color: var(--bs-body-color); /* Same as headers */
+    opacity: 0.9; /* Slightly lighter */
+}
+*/
+    .btn-grid,
+    .btn-row {
+        gap: 8px; /* Slightly smaller gaps on mobile */
+    }
+}     
+
+/* ===== REMOVE BADGES FROM EXPOSURE, RMS, SKY COLUMNS ===== */
+
+/* Exposure column (7th column) - TARGET ALL BADGE VARIATIONS */
+#compact-analyses-table td:nth-child(7) .badge,
+#compact-analyses-table td:nth-child(7) [class*="badge"],
+#compact-analyses-table td:nth-child(7) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+/* RMS column (8th column) */
+#compact-analyses-table td:nth-child(8) .badge,
+#compact-analyses-table td:nth-child(8) [class*="badge"],
+#compact-analyses-table td:nth-child(8) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+/* Sky column (9th column) */
+#compact-analyses-table td:nth-child(9) .badge,
+#compact-analyses-table td:nth-child(9) [class*="badge"],
+#compact-analyses-table td:nth-child(9) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+/* If you prefer a cleaner approach using shared class */
+.no-badge-style {
+    all: unset !important;
+    background: none !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    display: inline !important;
+}
+    
+</style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
@@ -576,149 +748,111 @@
                 </div>
             </div>
             
-            <!-- Last Data Update Card -->
+                      <!-- Last Data Update Card - WITH REFRESH CONTROLS -->
             <div class="col-md-4">
                 <div class="card equal-height-card stat-card">
                     <div class="card-body">
-                        <h5 class="card-title">
-                            <i class="bi bi-clock-history me-2"></i>Last Data Update
-                        </h5>
-                        <h2 class="display-6 mb-2" id="last-update-time">--:--:--</h2>
-                        <p class="card-text mb-0" id="last-update-status">
-                            <small>Waiting for first update...</small>
-                        </p>
-                        <div class="mt-auto">
-                            <small class="text-light opacity-75">
-                                <i class="bi bi-info-circle me-1"></i>Auto-refresh enabled
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Watcher Status Card - NOW WITH CONTROLS -->
-            <div class="col-md-4">
-                <div class="card equal-height-card stat-card watcher-card">
-                    <div class="card-body">
-                        <h5 class="card-title card-title-small">
-                            <i class="bi bi-eye me-2"></i>Watcher Controls
-                        </h5>
-                        
-                        <!-- Watcher Status Display -->
-                        <div class="mb-3">
-                            <h2 class="display-6 mb-2">
-                                <span class="badge bg-danger" id="watcher-status-badge">Stopped</span>
-                            </h2>
-                            <p class="card-text card-text-small" id="watcher-status-text">
-                                <span class="status-indicator status-inactive"></span>
-                                Not monitoring
-                            </p>
-                            <small class="text-light opacity-75">
-                                <i class="bi bi-folder me-1"></i>/Volumes/Rig24_Imaging
-                            </small>
-                        </div>
-                        
-                        <!-- Control Buttons Grid -->
-                        <div class="watcher-controls-grid">
-                            <button id="start-watcher-btn" class="btn btn-success btn-sm">
-                                <i class="bi bi-play-circle me-1"></i> Start
-                            </button>
-                            <button id="stop-watcher-btn" class="btn btn-danger btn-sm" disabled>
-                                <i class="bi bi-stop-circle me-1"></i> Stop
-                            </button>
-                            <button id="refresh-now-btn" class="btn btn-info btn-sm">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
-                            </button>
-                            <button id="process-existing-btn" class="btn btn-warning btn-sm">
-                                <i class="bi bi-gear me-1"></i> Process All
-                            </button>
-                        </div>
-                        
-                        <!-- Refresh Controls (Compact) -->
-                        <div class="refresh-controls-small mt-3">
-                            <div class="row g-2 align-items-center">
-                                <div class="col-auto">
-                                    <label class="form-label mb-0" style="font-size: 0.8rem;">Refresh:</label>
-                                </div>
-                                <div class="col">
-                                    <select class="form-select form-select-sm" id="refresh-rate-select">
-                                        <option value="5000">5s</option>
-                                        <option value="10000" selected>10s</option>
-                                        <option value="30000">30s</option>
-                                        <option value="60000">1m</option>
-                                        <option value="0">Off</option>
-                                    </select>
-                                </div>
-                                <div class="col-auto">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" id="auto-refresh-toggle" checked>
-                                        <label class="form-check-label" for="auto-refresh-toggle" style="font-size: 0.8rem;">Auto</label>
-                                    </div>
-                                </div>
+                        <div style="display: flex; flex-direction: column; height: 100%;">
+                            <!-- Time display -->
+                            <div style="flex: 1;">
+                                <h5 class="card-title">
+                                    <i class="bi bi-clock-history me-2"></i>Last Data Update
+                                </h5>
+                                <h2 class="display-6 mb-2" id="last-update-time">--:--:--</h2>
+                                <p class="card-text mb-0" id="last-update-status">
+                                    <small>Waiting for first update...</small>
+                                </p>
                             </div>
                             
-                            <!-- Refresh Progress -->
-                            <div class="mt-2">
-                                <div class="progress progress-small">
-                                    <div id="refresh-progress" class="progress-bar progress-bar-refresh" 
-                                         role="progressbar" style="width: 0%"></div>
+                            <!-- Refresh controls -->
+                            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                <div class="row g-2 align-items-center">
+                                    <div class="col">
+                                        <select class="form-select form-select-sm" id="refresh-rate-select">
+                                            <option value="5000">5s</option>
+                                            <option value="10000" selected>10s</option>
+                                            <option value="30000">30s</option>
+                                            <option value="60000">60s</option>
+                                            <option value="0">Off</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-auto">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="auto-refresh-toggle" checked>
+                                            <label class="form-check-label" for="auto-refresh-toggle">Auto</label>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="refresh-info-small d-flex justify-content-between">
-                                    <span id="next-refresh-text">
-                                        <i class="bi bi-clock me-1"></i>Next: --
-                                    </span>
-                                    <span id="refresh-rate-text">
-                                        <i class="bi bi-speedometer me-1"></i>10s
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- New Files Only Mode Indicator -->
-                        <div class="mt-2">
-                            <small class="text-light opacity-75">
-                                <i class="bi bi-info-circle me-1"></i>New files only mode
-                            </small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Status Messages (Removed from original position, now integrated in Watcher card) -->
-        
-        <!-- Theme Controls -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card refresh-controls">
-                    <div class="card-body py-2">
-                        <div class="row align-items-center">
-                            <div class="col-md-6 mb-2 mb-md-0">
-                                <small class="text-muted">
-                                    <i class="bi bi-info-circle me-1"></i>
-                                    <strong>New Files Only Mode:</strong> Only files added AFTER starting the watcher will be analyzed.
-                                    Use "Process All" to analyze existing files.
-                                </small>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center justify-content-md-end">
-                                    <span class="me-2">Theme:</span>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-secondary active" id="dark-theme-btn">
-                                            <i class="bi bi-moon-stars"></i>
-                                        </button>
-                                        <button class="btn btn-outline-secondary" id="light-theme-btn">
-                                            <i class="bi bi-sun"></i>
-                                        </button>
+                                <div class="mt-2">
+                                    <div class="progress" style="height: 6px;">
+                                        <div id="refresh-progress" class="progress-bar progress-bar-refresh" 
+                                             role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mt-1" style="font-size: 0.75rem;">
+                                        <span id="next-refresh-text">
+                                            <i class="bi bi-clock me-1"></i>Next: --
+                                        </span>
+                                        <span id="refresh-rate-text">
+                                            <i class="bi bi-speedometer me-1"></i>10s
+                                        </span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div> 
+
+<!-- Watcher Status Card - 2x2 BUTTON GRID -->
+<div class="col-md-4">
+    <div class="card equal-height-card stat-card">
+        <div class="card-body">
+            <div class="watcher-split">
+                <!-- Left: Status -->
+                <div class="watcher-left">
+                    <h5 class="card-title">
+                        <i class="bi bi-eye me-2"></i>Watcher Status
+                    </h5>
+                    <h2 class="display-6 mb-2">
+                        <span class="badge bg-danger" id="watcher-status-badge">Stopped</span>
+                    </h2>
+                    <p class="card-text mb-2" id="watcher-status-text">
+                        <span class="status-indicator status-inactive"></span>
+                        Not monitoring
+                    </p>
+                    <div class="watcher-folder-info">
+                        <i class="bi bi-folder me-1"></i>/Volumes/Rig24_Imaging
+                    </div>
+                </div>
+                
+                <!-- Right: 2x2 button grid -->
+                <div class="watcher-right">
+                    <div class="btn-grid">
+                        <!-- Row 1: Start and Stop -->
+                        <div class="btn-row">
+                            <button id="start-watcher-btn" class="btn btn-success btn-grid-item">
+                                <i class="bi bi-play-circle me-2"></i>Start
+                            </button>
+                            <button id="stop-watcher-btn" class="btn btn-danger btn-grid-item" disabled>
+                                <i class="bi bi-stop-circle me-2"></i>Stop
+                            </button>
+                        </div>
+                        <!-- Row 2: Refresh and Process All -->
+                        <div class="btn-row">
+                            <button id="refresh-now-btn" class="btn btn-info btn-grid-item">
+                                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                            </button>
+                            <button id="process-existing-btn" class="btn btn-warning btn-grid-item">
+                                <i class="bi bi-gear me-2"></i>Process All
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
+    </div>
+</div>
+</div>
         <!-- Recent Analyses -->
         <div class="row">
             <div class="col-12">

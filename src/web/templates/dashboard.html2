@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Centaur Parting - Astrophotography Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bs-body-bg: #121212;
+            --bs-body-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --table-hover: #2d2d2d;
+            --bs-table-bg: #1e1e1e;
+            --bs-table-color: #e0e0e0;
+            --bs-table-hover-bg: #2d2d2d;
+            --navbar-bg: #0a0a0a;
+            --stat-card-bg: linear-gradient(135deg, #2c3e50 0%, #1a1a2e 100%);
+            --border-color: #444;
+            --filename-color: #ffffff;
+            --metrics-color: #b0b0b0;
+            --metric-header-color: #0dcaf0;
+        }
+        
+        [data-bs-theme="light"] {
+            --bs-body-bg: #f8f9fa;
+            --bs-body-color: #212529;
+            --card-bg: #ffffff;
+            --table-hover: #f5f5f5;
+            --navbar-bg: #212529;
+            --stat-card-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --border-color: #dee2e6;
+            --filename-color: #212529;
+            --metrics-color: #6c757d;
+            --metric-header-color: #0d6efd;
+        }
+        
+        body {
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
+            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .navbar {
+            background-color: var(--navbar-bg) !important;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .table {
+            color: var(--bs-body-color);
+            border-color: var(--border-color);
+        }
+        
+        .table-hover tbody tr:hover {
+            background-color: var(--table-hover);
+        }
+        
+        .stat-card {
+            background: var(--stat-card-bg);
+            color: white;
+            border: none;
+        }
+        
+        .stat-card .card-body {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 0.375rem;
+        }
+        
+        .analysis-card {
+            border-left: 4px solid #0d6efd;
+        }
+        
+        .saturation-warning {
+            border-left: 4px solid #dc3545 !important;
+        }
+        
+        .fits-table td {
+            vertical-align: middle;
+            cursor: help;
+        }
+        
+        /* Detailed view - mini table layout */
+        .detailed-file-display {
+            display: flex;
+            flex-direction: column;
+            padding: 10px 0;
+        }
+        
+        .filename-line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--filename-color);
+            margin-bottom: 12px;
+            word-break: break-all;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .metrics-mini-table {
+            display: table;
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 4px;
+            font-size: 0.75rem;
+        }
+        
+        .metric-header-row {
+            display: table-row;
+        }
+        
+        .metric-value-row {
+            display: table-row;
+        }
+        
+     /* ===== DETAILED VIEW METRIC HEADERS AND VALUES ===== */
+.metric-header-cell {
+    display: table-cell;
+    padding: 4px 8px 4px 0;
+    color: var(--metric-header-color);
+    font-weight: 600;
+    white-space: nowrap;
+    border-bottom: 1px dashed rgba(13, 202, 240, 0.3);
+    vertical-align: bottom;
+    font-size: 1rem;
+}
+
+.metric-value-cell {
+    display: table-cell;
+    padding: 4px 8px 4px 0;
+    color: var(--metrics-color);
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    white-space: nowrap;
+    vertical-align: top;
+    font-size: 1rem;
+}
+
+.metric-header-cell i {
+    margin-right: 4px;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.metrics-mini-table {
+    display: table;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 6px;
+    font-size: 0.75rem;
+}
+
+.detailed-file-display .filename-line {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--filename-color);
+    margin-bottom: 12px;
+    word-break: break-all;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+    .metric-header-cell,
+    .metric-value-cell {
+        font-size: 0.9rem;
+        padding: 3px 6px 3px 0;
+    }
+    
+    .metric-header-cell i {
+        font-size: 0.85rem;
+    }
+    
+    .metrics-mini-table {
+        font-size: 0.9rem;
+    }
+}  
+        .badge-exposure-good { background-color: #198754; }
+        .badge-exposure-high { background-color: #fd7e14; }
+        .badge-exposure-low { background-color: #dc3545; }
+        .sky-badge-dark { background-color: #0d6efd; }
+        .sky-badge-bright { background-color: #6c757d; }
+        
+        .column-tooltip {
+            border-bottom: 1px dashed #666;
+            cursor: help;
+        }
+        
+        .refresh-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        [data-bs-theme="light"] .refresh-controls {
+            background: rgba(0, 0, 0, 0.03);
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .theme-toggle:hover {
+            transform: scale(1.1);
+        }
+        
+        .progress-bar-refresh {
+            background: linear-gradient(90deg, #198754, #0dcaf0);
+            transition: width 1s linear;
+            border-radius: 3px;
+        }
+        
+        .rig-table {
+            font-size: 0.85rem;
+        }
+        
+        .rig-table td {
+            padding: 4px 8px;
+            border: none;
+        }
+        
+        .rig-table th {
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        [data-bs-theme="light"] .rig-table th {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .analysis-count {
+            font-weight: bold;
+            color: #0dcaf0;
+        }
+        
+        /* Equal height cards */
+        .equal-height-card {
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .equal-height-card .card-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Modal styling */
+        .modal-content {
+            background-color: var(--card-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+        }
+        
+        /* Toast styling */
+        .toast {
+            background-color: var(--card-bg);
+            color: var(--bs-body-color);
+            border: 1px solid var(--border-color);
+        }
+        
+        .toast-header {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        /* Button improvements */
+        .btn {
+            transition: all 0.2s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Pagination styling */
+        .page-link {
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--bs-body-color);
+        }
+        
+        .page-link:hover {
+            background-color: var(--table-hover);
+            border-color: var(--border-color);
+        }
+        
+        .page-item.active .page-link {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        
+        /* Alert styling */
+        .alert {
+            background-color: rgba(13, 110, 253, 0.1);
+            border: 1px solid rgba(13, 110, 253, 0.3);
+            color: var(--bs-body-color);
+        }
+        
+        /* Custom scrollbar for dark mode */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-active {
+            background-color: #198754;
+            box-shadow: 0 0 8px #198754;
+        }
+        
+        .status-inactive {
+            background-color: #6c757d;
+        }
+        
+        .status-error {
+            background-color: #dc3545;
+            box-shadow: 0 0 8px #dc3545;
+        }
+        
+        /* Code block styling for modal */
+        .code-block {
+            background: #0a0a0a;
+            border-radius: 5px;
+            padding: 15px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            border: 1px solid #333;
+        }
+        
+        /* Filter badge colors */
+        .filter-Ha { background-color: #dc3545; color: white; }
+        .filter-OIII { background-color: #0dcaf0; color: white; }
+        .filter-SII { background-color: #fd7e14; color: white; }
+        .filter-L { background-color: #6c757d; color: white; }
+        .filter-R { background-color: #dc3545; color: white; }
+        .filter-G { background-color: #198754; color: white; }
+        .filter-B { background-color: #0d6efd; color: white; }
+        
+        /* Rig badge colors */
+        .rig-Rig24 { background-color: #6f42c1; color: white; }
+        .rig-Rig15 { background-color: #0dcaf0; color: white; }
+        .rig-Rig08 { background-color: #fd7e14; color: white; }
+        
+        /* Status badge colors */
+        .status-Good { background-color: #198754; color: white; }
+        .status-Moderate { background-color: #fd7e14; color: white; }
+        .status-Critical { background-color: #dc3545; color: white; }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .equal-height-card {
+                height: auto;
+                margin-bottom: 15px;
+            }
+            
+            .refresh-controls .btn-group {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .theme-toggle {
+                bottom: 10px;
+                left: 10px;
+                width: 40px;
+                height: 40px;
+            }
+            
+            .table-responsive {
+                font-size: 0.85rem;
+            }
+            
+            .metrics-mini-table {
+                font-size: 0.7rem;
+            }
+            
+            .metric-header-cell,
+            .metric-value-cell {
+                padding: 1px 4px 1px 0;
+            }
+        }
+        
+        /* Filter controls */
+        .filter-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .filter-label {
+            font-weight: 600;
+            color: #0dcaf0;
+            font-size: 0.9rem;
+        }
+        
+        /* View toggle */
+        .view-toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .view-toggle-btn {
+            padding: 4px 12px;
+            font-size: 0.85rem;
+        }
+        
+        /* Detailed view specific */
+        .detailed-view .fits-table {
+            table-layout: fixed;
+        }
+        
+        .detailed-view .fits-table th:first-child,
+        .detailed-view .fits-table td:first-child {
+            width: 85%;
+        }
+        
+        .detailed-view .fits-table th:last-child,
+        .detailed-view .fits-table td:last-child {
+            width: 15%;
+        }
+        
+        /* Animation for filter changes */
+        .fade-out {
+            animation: fadeOut 0.3s ease-out;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+/* ===== WATCHER 2x2 BUTTON GRID ===== */
+.watcher-split {
+    display: flex;
+    height: 100%;
+    gap: 15px;
+}
+
+.watcher-left {
+    flex: 1;
+}
+
+.watcher-right {
+    min-width: 350px;
+    width: 350px;
+}
+
+.btn-grid {
+    display: grid;
+    grid-template-rows: repeat(2, 1fr);
+    gap: 10px;
+    height: 100%;
+}
+
+.btn-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.btn-grid-item {
+    padding: 15px 10px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    min-height: 60px;
+}
+
+.btn-grid-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-grid-item .bi {
+    font-size: 1.4rem;
+    margin-right: 8px;
+}
+
+@media (max-width: 768px) {
+    .btn-grid-item {
+        padding: 12px 8px;
+        font-size: 1rem;
+        min-height: 55px;
+    }
+    
+    .watcher-right {
+        min-width: 280px;
+        width: 280px;
+    }
+    
+    .btn-grid-item .bi {
+        font-size: 1.2rem;
+        margin-right: 6px;
+    }
+    
+    .btn-grid,
+    .btn-row {
+        gap: 8px;
+    }
+}     
+    
+/* ===== DETAILED VIEW UNIFIED COLORS ===== */
+#detailed-view-table th,
+#detailed-view-table td,
+.metric-header-cell,
+.metric-value-cell,
+.detailed-file-display .filename-line {
+    color: var(--bs-body-color);
+}
+
+.metric-header-cell {
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.metric-value-cell {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+    .btn-grid,
+    .btn-row {
+        gap: 8px;
+    }
+
+/* ===== REMOVE BADGES FROM EXPOSURE, RMS, SKY COLUMNS ===== */
+#compact-analyses-table td:nth-child(7) .badge,
+#compact-analyses-table td:nth-child(7) [class*="badge"],
+#compact-analyses-table td:nth-child(7) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+#compact-analyses-table td:nth-child(8) .badge,
+#compact-analyses-table td:nth-child(8) [class*="badge"],
+#compact-analyses-table td:nth-child(8) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+#compact-analyses-table td:nth-child(9) .badge,
+#compact-analyses-table td:nth-child(9) [class*="badge"],
+#compact-analyses-table td:nth-child(9) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+.no-badge-style {
+    all: unset !important;
+    background: none !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    display: inline !important;
+}
+
+/* ===== NAVBAR TABS STYLING ===== */
+.navbar .nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    border-bottom: 3px solid transparent;
+    margin: 0 5px;
+    transition: all 0.2s ease;
+}
+
+.navbar .nav-link:hover {
+    color: white;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.navbar .nav-link.active {
+    color: white;
+    border-bottom: 3px solid #0dcaf0;
+    font-weight: 600;
+}
+
+[data-bs-theme="light"] .navbar .nav-link {
+    color: rgba(0, 0, 0, 0.75);
+}
+
+[data-bs-theme="light"] .navbar .nav-link:hover {
+    color: black;
+    border-bottom: 3px solid rgba(0, 0, 0, 0.2);
+}
+
+[data-bs-theme="light"] .navbar .nav-link.active {
+    color: black;
+    border-bottom: 3px solid #0d6efd;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.navbar-text {
+    white-space: nowrap;
+}
+</style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-stars me-2"></i>Centaur Parting
+                <small class="ms-2 opacity-75">Astrophotography Tracker</small>
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarTabs">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarTabs">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" id="fits-analysis-tab">
+                            <i class="bi bi-table me-1"></i>FITS Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="historical-tab">
+                            <i class="bi bi-clock-history me-1"></i>Historical
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="dark-analysis-tab">
+                            <i class="bi bi-moon-stars me-1"></i>Dark Analysis
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="flat-analysis-tab">
+                            <i class="bi bi-sun me-1"></i>Flat Analysis
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="navbar-text">
+                    <span class="status-indicator status-active"></span>
+                    <span id="connection-status" class="badge bg-success me-2">Connected</span>
+                    <span id="current-time" class="text-muted">--:--:--</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area - Will be managed by JavaScript -->
+    <div id="main-content" class="container-fluid">
+        <!-- FITS Analysis Content (default) -->
+        <div id="fits-analysis-content" class="tab-content active">
+            <!-- Dashboard Stats -->
+            <div class="row mb-4">
+                <!-- Rig Summary Card -->
+                <div class="col-md-4">
+                    <div class="card equal-height-card stat-card">
+                        <div class="card-body">
+                            <h5 class="card-title d-flex justify-content-between align-items-center">
+                                <span><i class="bi bi-camera-video me-2"></i>Rig Summary</span>
+                                <span class="badge bg-dark" id="total-files-count">0</span>
+                            </h5>
+                            <div class="rig-table mt-2">
+                                <table class="table table-borderless mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Rig</th>
+                                            <th>Telescope</th>
+                                            <th>Camera</th>
+                                            <th class="text-end">Files</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rig-summary-table">
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3">
+                                                <div class="spinner-border spinner-border-sm text-light me-2" role="status"></div>
+                                                <span class="text-light">Loading rig data...</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Last Data Update Card -->
+                <div class="col-md-4">
+                    <div class="card equal-height-card stat-card">
+                        <div class="card-body">
+                            <div style="display: flex; flex-direction: column; height: 100%;">
+                                <div style="flex: 1;">
+                                    <h5 class="card-title">
+                                        <i class="bi bi-clock-history me-2"></i>Last Data Update
+                                    </h5>
+                                    <h2 class="display-6 mb-2" id="last-update-time">--:--:--</h2>
+                                    <p class="card-text mb-0" id="last-update-status">
+                                        <small>Waiting for first update...</small>
+                                    </p>
+                                </div>
+                                
+                                <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <div class="row g-2 align-items-center">
+                                        <div class="col">
+                                            <select class="form-select form-select-sm" id="refresh-rate-select">
+                                                <option value="5000">5s</option>
+                                                <option value="10000" selected>10s</option>
+                                                <option value="30000">30s</option>
+                                                <option value="60000">60s</option>
+                                                <option value="0">Off</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="auto-refresh-toggle" checked>
+                                                <label class="form-check-label" for="auto-refresh-toggle">Auto</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <div class="progress" style="height: 6px;">
+                                            <div id="refresh-progress" class="progress-bar progress-bar-refresh" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-1" style="font-size: 0.75rem;">
+                                            <span id="next-refresh-text">
+                                                <i class="bi bi-clock me-1"></i>Next: --
+                                            </span>
+                                            <span id="refresh-rate-text">
+                                                <i class="bi bi-speedometer me-1"></i>10s
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watcher Status Card -->
+                <div class="col-md-4">
+                    <div class="card equal-height-card stat-card">
+                        <div class="card-body">
+                            <div class="watcher-split">
+                                <div class="watcher-left">
+                                    <h5 class="card-title">
+                                        <i class="bi bi-eye me-2"></i>Watcher Status
+                                    </h5>
+                                    <h2 class="display-6 mb-2">
+                                        <span class="badge bg-danger" id="watcher-status-badge">Stopped</span>
+                                    </h2>
+                                    <p class="card-text mb-2" id="watcher-status-text">
+                                        <span class="status-indicator status-inactive"></span>
+                                        Not monitoring
+                                    </p>
+                                    <div class="watcher-folder-info">
+                                        <i class="bi bi-folder me-1"></i>/Volumes/Rig24_Imaging
+                                    </div>
+                                </div>
+                                
+                                <div class="watcher-right">
+                                    <div class="btn-grid">
+                                        <div class="btn-row">
+                                            <button id="start-watcher-btn" class="btn btn-success btn-grid-item">
+                                                <i class="bi bi-play-circle me-2"></i>Start
+                                            </button>
+                                            <button id="stop-watcher-btn" class="btn btn-danger btn-grid-item" disabled>
+                                                <i class="bi bi-stop-circle me-2"></i>Stop
+                                            </button>
+                                        </div>
+                                        <div class="btn-row">
+                                            <button id="refresh-now-btn" class="btn btn-info btn-grid-item">
+                                                <i class="bi bi-arrow-clockwise me-2"></i>Refresh
+                                            </button>
+                                            <button id="process-existing-btn" class="btn btn-warning btn-grid-item">
+                                                <i class="bi bi-gear me-2"></i>Process All
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Analyses -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="bi bi-table me-2"></i>Recent FITS Analyses
+                            </h5>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="view-toggle-group">
+                                    <span class="filter-label me-2">View:</span>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-secondary view-toggle-btn active" data-view="compact">
+                                            <i class="bi bi-layout-three-columns me-1"></i>Compact
+                                        </button>
+                                        <button class="btn btn-outline-secondary view-toggle-btn" data-view="detailed">
+                                            <i class="bi bi-layout-text-sidebar me-1"></i>Detailed
+                                        </button>
+                                    </div>
+                                </div>
+                                <span class="badge bg-primary" id="displayed-files-count">
+                                    <i class="bi bi-file-earmark me-1"></i>0 files
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Filter Controls -->
+                        <div class="card-body border-bottom">
+                            <div class="filter-controls">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="filter-group">
+                                            <span class="filter-label">Rig:</span>
+                                            <button class="btn btn-sm btn-outline-secondary active" data-filter-rig="all">All Rigs</button>
+                                            <button class="btn btn-sm btn-outline-secondary" data-filter-rig="Rig24">Rig24</button>
+                                            <button class="btn btn-sm btn-outline-secondary" data-filter-rig="Rig15">Rig15</button>
+                                            <button class="btn btn-sm btn-outline-secondary" data-filter-rig="Rig08">Rig08</button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="filter-group">
+                                            <span class="filter-label">Filter:</span>
+                                            <button class="btn btn-sm btn-outline-secondary active" data-filter-type="all">All Filters</button>
+                                            <button class="btn btn-sm btn-outline-secondary filter-Ha" data-filter-type="Ha">Ha</button>
+                                            <button class="btn btn-sm btn-outline-secondary filter-OIII" data-filter-type="OIII">OIII</button>
+                                            <button class="btn btn-sm btn-outline-secondary filter-SII" data-filter-type="SII">SII</button>
+                                            <button class="btn btn-sm btn-outline-secondary filter-L" data-filter-type="L">L</button>
+                                            <button class="btn btn-sm btn-outline-secondary filter-R" data-filter-type="R">R</button>
+                                            <button class="btn btn-sm btn-outline-secondary filter-G" data-filter-type="G">G</button>
+                                            <button class="btn btn-sm btn-outline-secondary filter-B" data-filter-type="B">B</button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="filter-group">
+                                            <span class="filter-label">Status:</span>
+                                            <button class="btn btn-sm btn-outline-secondary active" data-filter-status="all">All Status</button>
+                                            <button class="btn btn-sm btn-outline-secondary status-Good" data-filter-status="Good">Good</button>
+                                            <button class="btn btn-sm btn-outline-secondary status-Moderate" data-filter-status="Moderate">Moderate</button>
+                                            <button class="btn btn-sm btn-outline-secondary status-Critical" data-filter-status="Critical">Critical</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <small class="text-muted">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            Showing: <span id="current-filter-display">All files</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <!-- COMPACT VIEW TABLE -->
+                            <div class="table-responsive" id="compact-view-table">
+                                <table class="table table-hover fits-table mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th class="column-tooltip" title="Filename and timestamp of acquisition">
+                                                <i class="bi bi-file-earmark me-1"></i>File
+                                            </th>
+                                            <th class="column-tooltip" title="Astronomical target name">
+                                                <i class="bi bi-star me-1"></i>Object
+                                            </th>
+                                            <th class="column-tooltip" title="Filter used (L, R, G, B, Ha, OIII, SII)">
+                                                <i class="bi bi-funnel me-1"></i>Filter
+                                            </th>
+                                            <th class="column-tooltip" title="Camera/Telescope combination">
+                                                <i class="bi bi-camera me-1"></i>Rig
+                                            </th>
+                                            <th class="column-tooltip" title="Telescope model">
+                                                <i class="bi bi-telescope me-1"></i>Telescope
+                                            </th>
+                                            <th class="column-tooltip" title="Camera model">
+                                                <i class="bi bi-camera-video me-1"></i>Camera
+                                            </th>
+                                            <th class="column-tooltip" title="Exposure time (seconds)">
+                                                <i class="bi bi-clock me-1"></i>Exposure
+                                            </th>
+                                            <th class="column-tooltip" title="Guiding RMS (arcseconds)">
+                                                <i class="bi bi-bullseye me-1"></i>RMS
+                                            </th>
+                                            <th class="column-tooltip" title="Sky brightness (mag/arcsec²)">
+                                                <i class="bi bi-cloud-moon me-1"></i>Sky
+                                            </th>
+                                            <th class="column-tooltip" title="Signal-to-Noise Ratio">
+                                                <i class="bi bi-graph-up me-1"></i>SNR
+                                            </th>
+                                            <th class="column-tooltip" title="Star count">
+                                                <i class="bi bi-stars me-1"></i>Stars
+                                            </th>
+                                            <th class="column-tooltip" title="Half-Flux Radius (arcseconds)">
+                                                <i class="bi bi-circle me-1"></i>HFR
+                                            </th>
+                                            <th class="column-tooltip" title="Saturation status">
+                                                <i class="bi bi-exclamation-triangle me-1"></i>Status
+                                            </th>
+                                            <th class="column-tooltip" title="Actions">
+                                                <i class="bi bi-gear me-1"></i>Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="compact-analyses-table">
+                                        <tr>
+                                            <td colspan="14" class="text-center py-5">
+                                                <div class="mb-3">
+                                                    <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                                </div>
+                                                <h5 class="text-muted">No analyses yet</h5>
+                                                <p class="text-muted mb-0">
+                                                    Start the watcher to analyze new FITS files
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- DETAILED VIEW TABLE -->
+                            <div class="table-responsive d-none" id="detailed-view-table">
+                                <table class="table table-hover fits-table mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th class="column-tooltip" title="Filename with all metrics displayed below">
+                                                <i class="bi bi-file-earmark-text me-1"></i>File & Metrics
+                                            </th>
+                                            <th class="column-tooltip" title="Actions">
+                                                <i class="bi bi-gear me-1"></i>Actions
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="detailed-analyses-table">
+                                        <tr>
+                                            <td colspan="2" class="text-center py-5">
+                                                <div class="mb-3">
+                                                    <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                                </div>
+                                                <h5 class="text-muted">No analyses yet</h5>
+                                                <p class="text-muted mb-0">
+                                                    Start the watcher to analyze new FITS files
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <div class="mt-3">
+                                <nav aria-label="Analysis pagination">
+                                    <ul class="pagination justify-content-center mb-0" id="pagination">
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                        <li class="page-item disabled">
+                                            <a class="page-link" href="#" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historical Content -->
+        <div id="historical-content" class="tab-content">
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historical Data Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Historical data analysis will be available soon.</p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This section will show historical trends, charts, and long-term statistics.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dark Analysis Content -->
+        <div id="dark-analysis-content" class="tab-content">
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-moon-stars me-2"></i>Dark Frame Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Dark frame calibration analysis will be available soon.</p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This section will analyze dark frames for hot pixels, noise patterns, and calibration quality.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flat Analysis Content -->
+        <div id="flat-analysis-content" class="tab-content">
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-sun me-2"></i>Flat Frame Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Flat frame calibration analysis will be available soon.</p>
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        This section will analyze flat frames for vignetting, dust spots, and illumination patterns.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analysis Modal -->
+    <div class="modal fade" id="analysisModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-file-earmark-text me-2"></i>FITS Analysis Details
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="analysis-modal-body">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading analysis details...</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>Close
+                    </button>
+                    <button type="button" class="btn btn-primary" id="export-analysis-btn">
+                        <i class="bi bi-download me-1"></i>Export JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <button class="btn btn-outline-secondary theme-toggle" id="theme-toggle" title="Toggle theme">
+        <i class="bi bi-moon-stars"></i>
+    </button>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notification-toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto" id="toast-title">Notification</strong>
+                <small class="text-muted" id="toast-time">just now</small>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toast-message"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    
+    <script>
+    // Initialize theme to dark by default
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set dark theme as default
+        document.documentElement.setAttribute('data-bs-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl, {
+                delay: {show: 500, hide: 100}
+            });
+        });
+        
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            themeToggle.innerHTML = newTheme === 'dark' ? '<i class="bi bi-moon-stars"></i>' : '<i class="bi bi-sun"></i>';
+        });
+        
+        // Update current time
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('current-time').textContent = timeString;
+        }
+        
+        updateCurrentTime();
+        setInterval(updateCurrentTime, 1000);
+        
+        // View toggle buttons
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                const viewType = this.getAttribute('data-view');
+                const compactTable = document.getElementById('compact-view-table');
+                const detailedTable = document.getElementById('detailed-view-table');
+                
+                if (viewType === 'compact') {
+                    if (compactTable) compactTable.classList.remove('d-none');
+                    if (detailedTable) detailedTable.classList.add('d-none');
+                } else {
+                    if (compactTable) compactTable.classList.add('d-none');
+                    if (detailedTable) detailedTable.classList.remove('d-none');
+                }
+                
+                localStorage.setItem('preferred-view', viewType);
+            });
+        });
+        
+        // Load preferred view
+        const preferredView = localStorage.getItem('preferred-view') || 'compact';
+        const viewBtn = document.querySelector(`.view-toggle-btn[data-view="${preferredView}"]`);
+        if (viewBtn) {
+            viewBtn.classList.add('active');
+            const compactTable = document.getElementById('compact-view-table');
+            const detailedTable = document.getElementById('detailed-view-table');
+            
+            if (preferredView === 'compact') {
+                if (compactTable) compactTable.classList.remove('d-none');
+                if (detailedTable) detailedTable.classList.add('d-none');
+            } else {
+                if (compactTable) compactTable.classList.add('d-none');
+                if (detailedTable) detailedTable.classList.remove('d-none');
+            }
+        }
+        
+        // Filter buttons
+        document.querySelectorAll('[data-filter-rig]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-filter-rig]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        document.querySelectorAll('[data-filter-type]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-filter-type]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        document.querySelectorAll('[data-filter-status]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-filter-status]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // ===== TAB SWITCHING FUNCTIONALITY =====
+        // Simple tab switching
+        document.querySelectorAll('.nav-link[id$="-tab"]').forEach(tab => {
+            tab.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all tabs
+                document.querySelectorAll('.nav-link').forEach(t => t.classList.remove('active'));
+                
+                // Add active to clicked tab
+                this.classList.add('active');
+                
+                // Hide all tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                
+                // Show corresponding content
+                const tabId = this.id;
+                const contentId = tabId.replace('-tab', '-content');
+                const content = document.getElementById(contentId);
+                if (content) {
+                    content.classList.add('active');
+                }
+                
+                // Save active tab
+                localStorage.setItem('activeTab', tabId);
+            });
+        });
+        
+        // Load saved tab
+        const savedTab = localStorage.getItem('activeTab') || 'fits-analysis-tab';
+        const savedTabElement = document.getElementById(savedTab);
+        if (savedTabElement) {
+            savedTabElement.classList.add('active');
+            const contentId = savedTab.replace('-tab', '-content');
+            const content = document.getElementById(contentId);
+            if (content) {
+                content.classList.add('active');
+            }
+        }
+        
+        console.log('Dashboard HTML initialized - waiting for dashboard.js to load real data');
+    });
+    </script>
+</body>
+</html>
