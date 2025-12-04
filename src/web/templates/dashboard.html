@@ -588,7 +588,37 @@
         gap: 8px; /* Slightly smaller gaps on mobile */
     }
 }     
-    </style>
+    
+/* ===== DETAILED VIEW UNIFIED COLORS ===== */
+
+/* Make ALL text in detailed view use the same color as column headers */
+#detailed-view-table th,
+#detailed-view-table td,
+.metric-header-cell,
+.metric-value-cell,
+.detailed-file-display .filename-line {
+    color: var(--bs-body-color); /* All use the same body text color */
+}
+
+/* Optional: Keep a slight visual distinction for metric headers if desired */
+.metric-header-cell {
+    font-weight: 600; /* Keep them bold for hierarchy */
+    opacity: 0.9; /* Slightly lighter than pure body color if needed */
+}
+
+/* Ensure metric values keep their monospace font for data */
+.metric-value-cell {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* If you want the metric headers to keep SOME color distinction, use this instead: */
+/*
+.metric-header-cell {
+    color: var(--bs-body-color); /* Same as headers */
+    opacity: 0.9; /* Slightly lighter */
+}
+*/
+</style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
