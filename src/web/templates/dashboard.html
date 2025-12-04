@@ -18,6 +18,8 @@
             --navbar-bg: #0a0a0a;
             --stat-card-bg: linear-gradient(135deg, #2c3e50 0%, #1a1a2e 100%);
             --border-color: #444;
+            --filename-color: #ffffff;
+            --metrics-color: #b0b0b0;
         }
         
         [data-bs-theme="light"] {
@@ -28,6 +30,8 @@
             --navbar-bg: #212529;
             --stat-card-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             --border-color: #dee2e6;
+            --filename-color: #212529;
+            --metrics-color: #6c757d;
         }
         
         body {
@@ -86,6 +90,33 @@
         .fits-table td {
             vertical-align: middle;
             cursor: help;
+        }
+        
+        /* Two-line file display */
+        .file-display {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+        }
+        
+        .filename-line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--filename-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 2px;
+        }
+        
+        .metrics-line {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--metrics-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .badge-exposure-good { background-color: #198754; }
@@ -290,6 +321,20 @@
             border: 1px solid #333;
         }
         
+        /* Filter badge colors */
+        .filter-Ha { background-color: #dc3545; color: white; }
+        .filter-OIII { background-color: #0dcaf0; color: white; }
+        .filter-SII { background-color: #fd7e14; color: white; }
+        .filter-L { background-color: #6c757d; color: white; }
+        .filter-R { background-color: #dc3545; color: white; }
+        .filter-G { background-color: #198754; color: white; }
+        .filter-B { background-color: #0d6efd; color: white; }
+        
+        /* Rig badge colors */
+        .rig-Rig24 { background-color: #6f42c1; color: white; }
+        .rig-Rig15 { background-color: #0dcaf0; color: white; }
+        .rig-Rig08 { background-color: #fd7e14; color: white; }
+        
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .equal-height-card {
@@ -313,6 +358,31 @@
             .table-responsive {
                 font-size: 0.85rem;
             }
+            
+            .file-display {
+                min-width: 150px;
+            }
+        }
+        
+        /* Filter controls */
+        .filter-controls {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .filter-label {
+            font-weight: 600;
+            color: #0dcaf0;
+            font-size: 0.9rem;
         }
     </style>
 </head>
@@ -525,20 +595,54 @@
                             <span class="badge bg-primary me-2" id="displayed-files-count">
                                 <i class="bi bi-file-earmark me-1"></i>0 files
                             </span>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary active" data-filter="all">All</button>
-                                <button class="btn btn-outline-secondary" data-filter="rig24">Rig24</button>
-                                <button class="btn btn-outline-secondary" data-filter="ha">Ha</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Filter Controls -->
+                    <div class="card-body border-bottom">
+                        <div class="filter-controls">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="filter-group">
+                                        <span class="filter-label">Rig:</span>
+                                        <button class="btn btn-sm btn-outline-secondary active" data-filter-rig="all">All Rigs</button>
+                                        <button class="btn btn-sm btn-outline-secondary" data-filter-rig="Rig24">Rig24</button>
+                                        <button class="btn btn-sm btn-outline-secondary" data-filter-rig="Rig15">Rig15</button>
+                                        <button class="btn btn-sm btn-outline-secondary" data-filter-rig="Rig08">Rig08</button>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="filter-group">
+                                        <span class="filter-label">Filter:</span>
+                                        <button class="btn btn-sm btn-outline-secondary active" data-filter-type="all">All Filters</button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-Ha" data-filter-type="Ha">Ha</button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-OIII" data-filter-type="OIII">OIII</button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-SII" data-filter-type="SII">SII</button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-L" data-filter-type="L">L</button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-R" data-filter-type="R">R</button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-G" data-filter-type="G">G</button>
+                                        <button class="btn btn-sm btn-outline-secondary filter-B" data-filter-type="B">B</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <small class="text-muted">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        Showing: <span id="current-filter-display">All files</span>
+                                    </small>
+                                </div>
                             </div>
                         </div>
                     </div>
+                    
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover fits-table mb-0">
                                 <thead class="table-dark">
                                     <tr>
                                         <th class="column-tooltip" title="Filename and timestamp of acquisition">
-                                            <i class="bi bi-file-earmark me-1"></i>File
+                                            <i class="bi bi-file-earmark me-1"></i>File & Metrics
                                         </th>
                                         <th class="column-tooltip" title="Astronomical target name">
                                             <i class="bi bi-star me-1"></i>Object
@@ -582,15 +686,63 @@
                                     </tr>
                                 </thead>
                                 <tbody id="analyses-table">
-                                    <tr>
-                                        <td colspan="14" class="text-center py-5">
-                                            <div class="mb-3">
-                                                <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                                    <!-- Sample data for testing the two-line display -->
+                                    <tr class="analysis-card">
+                                        <td>
+                                            <div class="file-display">
+                                                <div class="filename-line" title="NGC7000_Ha_300s_G80_RMS_0.35_2024-01-15T22:30:45.fits">
+                                                    NGC7000_Ha_300s_G80_RMS_0.35_2024-01-15T22:30:45.fits
+                                                </div>
+                                                <div class="metrics-line" title="Exp:300s | Gain:80 | Temp:-10°C | RMS:0.35">
+                                                    Exp:300s | Gain:80 | Temp:-10°C | RMS:0.35
+                                                </div>
                                             </div>
-                                            <h5 class="text-muted">No analyses yet</h5>
-                                            <p class="text-muted mb-0">
-                                                Start the watcher to analyze new FITS files
-                                            </p>
+                                        </td>
+                                        <td>NGC 7000</td>
+                                        <td><span class="badge filter-Ha">Ha</span></td>
+                                        <td><span class="badge rig-Rig24">Rig24</span></td>
+                                        <td>Askar V-80</td>
+                                        <td>QHYminiCam8M</td>
+                                        <td><span class="badge bg-success">300s</span></td>
+                                        <td><span class="badge bg-info">0.35"</span></td>
+                                        <td><span class="badge sky-badge-dark">20.8</span></td>
+                                        <td><span class="badge bg-success">42.6</span></td>
+                                        <td><span class="badge bg-secondary">127</span></td>
+                                        <td><span class="badge bg-secondary">2.1"</span></td>
+                                        <td><span class="badge bg-success">Good</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info view-analysis" data-filename="sample1.fits">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr class="analysis-card">
+                                        <td>
+                                            <div class="file-display">
+                                                <div class="filename-line" title="M31_L_120s_G75_RMS_0.42_2024-01-15T23:15:22.fits">
+                                                    M31_L_120s_G75_RMS_0.42_2024-01-15T23:15:22.fits
+                                                </div>
+                                                <div class="metrics-line" title="Exp:120s | Gain:75 | Temp:-15°C | RMS:0.42">
+                                                    Exp:120s | Gain:75 | Temp:-15°C | RMS:0.42
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>M31</td>
+                                        <td><span class="badge filter-L">L</span></td>
+                                        <td><span class="badge rig-Rig15">Rig15</span></td>
+                                        <td>William Optics GT81</td>
+                                        <td>ZWO ASI1600MM</td>
+                                        <td><span class="badge bg-warning">120s</span></td>
+                                        <td><span class="badge bg-info">0.42"</span></td>
+                                        <td><span class="badge sky-badge-bright">19.2</span></td>
+                                        <td><span class="badge bg-warning">28.4</span></td>
+                                        <td><span class="badge bg-secondary">89</span></td>
+                                        <td><span class="badge bg-secondary">1.8"</span></td>
+                                        <td><span class="badge bg-warning">Moderate</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info view-analysis" data-filename="sample2.fits">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -744,28 +896,76 @@
         updateCurrentTime();
         setInterval(updateCurrentTime, 1000);
         
-        // Filter buttons
-        document.querySelectorAll('[data-filter]').forEach(btn => {
+        // Filter buttons - Rig
+        document.querySelectorAll('[data-filter-rig]').forEach(btn => {
             btn.addEventListener('click', function() {
-                // Remove active class from all filter buttons
-                document.querySelectorAll('[data-filter]').forEach(b => {
+                // Remove active class from all rig filter buttons
+                document.querySelectorAll('[data-filter-rig]').forEach(b => {
                     b.classList.remove('active');
                 });
                 // Add active class to clicked button
                 this.classList.add('active');
                 
-                // Get the filter value
-                const filter = this.getAttribute('data-filter');
+                // Get the filter values
+                const rigFilter = this.getAttribute('data-filter-rig');
+                const filterType = document.querySelector('[data-filter-type].active')?.getAttribute('data-filter-type') || 'all';
                 
-                // Update filter status badge
-                const filterStatus = document.getElementById('filter-status');
-                if (filterStatus) {
-                    filterStatus.textContent = filter === 'all' ? 'All filters' : `Filter: ${filter}`;
-                }
+                // Update filter display
+                updateFilterDisplay(rigFilter, filterType);
                 
                 // Here you would typically filter the table
                 // This would be implemented in dashboard.js
-                console.log(`Filter changed to: ${filter}`);
+                console.log(`Rig filter: ${rigFilter}, Type filter: ${filterType}`);
+            });
+        });
+        
+        // Filter buttons - Filter Type
+        document.querySelectorAll('[data-filter-type]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all type filter buttons
+                document.querySelectorAll('[data-filter-type]').forEach(b => {
+                    b.classList.remove('active');
+                });
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Get the filter values
+                const rigFilter = document.querySelector('[data-filter-rig].active')?.getAttribute('data-filter-rig') || 'all';
+                const filterType = this.getAttribute('data-filter-type');
+                
+                // Update filter display
+                updateFilterDisplay(rigFilter, filterType);
+                
+                // Here you would typically filter the table
+                // This would be implemented in dashboard.js
+                console.log(`Rig filter: ${rigFilter}, Type filter: ${filterType}`);
+            });
+        });
+        
+        // Function to update filter display text
+        function updateFilterDisplay(rigFilter, typeFilter) {
+            const displayElement = document.getElementById('current-filter-display');
+            let displayText = '';
+            
+            if (rigFilter === 'all' && typeFilter === 'all') {
+                displayText = 'All files';
+            } else if (rigFilter === 'all') {
+                displayText = `All rigs, ${typeFilter} filter`;
+            } else if (typeFilter === 'all') {
+                displayText = `${rigFilter}, all filters`;
+            } else {
+                displayText = `${rigFilter}, ${typeFilter} filter`;
+            }
+            
+            displayElement.textContent = displayText;
+        }
+        
+        // View analysis buttons
+        document.querySelectorAll('.view-analysis').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filename = this.getAttribute('data-filename');
+                console.log(`View analysis for: ${filename}`);
+                // This would trigger the modal load in dashboard.js
             });
         });
         
@@ -794,6 +994,7 @@
                     </tr>
                 `;
                 document.getElementById('total-files-count').textContent = '67';
+                document.getElementById('displayed-files-count').innerHTML = '<i class="bi bi-file-earmark me-1"></i>2 files';
             }
         }, 1500);
     });
