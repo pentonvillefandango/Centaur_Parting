@@ -9,12 +9,23 @@ let countdownInterval = null;
 let countdownValue = 10;
 let lastDataUpdate = null;
 
+// New state for our features
+let currentView = localStorage.getItem('preferred-view') || 'compact';
+let currentFilters = {
+    rig: 'all',
+    filterType: 'all',
+    status: 'all'
+};
+let allAnalysesData = []; // Store all loaded analyses for filtering
+
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Dashboard initialized');
     
     // Initialize components
     setupEventListeners();
+    setupViewToggle();
+    setupFilterControls();
     loadAnalyses();
     loadWatcherStatus();
     loadRigSummary();
@@ -84,6 +95,108 @@ function setupEventListeners() {
     if (exportBtn) {
         exportBtn.addEventListener('click', exportCurrentAnalysis);
     }
+    
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function() {
+            const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+    }
+}
+
+function setupViewToggle() {
+    // View toggle buttons
+    document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all view toggle buttons
+            document.querySelectorAll('.view-toggle-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get the view type
+            const viewType = this.getAttribute('data-view');
+            currentView = viewType;
+            localStorage.setItem('preferred-view', viewType);
+            
+            // Show/hide tables
+            const compactTable = document.getElementById('compact-view-table');
+            const detailedTable = document.getElementById('detailed-view-table');
+            
+            if (viewType === 'compact') {
+                if (compactTable) compactTable.classList.remove('d-none');
+                if (detailedTable) detailedTable.classList.add('d-none');
+            } else {
+                if (compactTable) compactTable.classList.add('d-none');
+                if (detailedTable) detailedTable.classList.remove('d-none');
+            }
+            
+            // Re-render the current view
+            renderCurrentView();
+        });
+    });
+    
+    // Load preferred view from localStorage
+    const preferredView = localStorage.getItem('preferred-view') || 'compact';
+    const viewBtn = document.querySelector(`.view-toggle-btn[data-view="${preferredView}"]`);
+    if (viewBtn) {
+        viewBtn.click();
+    }
+}
+
+function setupFilterControls() {
+    // Filter buttons - Rig
+    document.querySelectorAll('[data-filter-rig]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all rig filter buttons
+            document.querySelectorAll('[data-filter-rig]').forEach(b => {
+                b.classList.remove('active');
+            });
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Update filter and apply
+            currentFilters.rig = this.getAttribute('data-filter-rig');
+            applyFilters();
+        });
+    });
+    
+    // Filter buttons - Filter Type
+    document.querySelectorAll('[data-filter-type]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all type filter buttons
+            document.querySelectorAll('[data-filter-type]').forEach(b => {
+                b.classList.remove('active');
+            });
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Update filter and apply
+            currentFilters.filterType = this.getAttribute('data-filter-type');
+            applyFilters();
+        });
+    });
+    
+    // Filter buttons - Status
+    document.querySelectorAll('[data-filter-status]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Remove active class from all status filter buttons
+            document.querySelectorAll('[data-filter-status]').forEach(b => {
+                b.classList.remove('active');
+            });
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Update filter and apply
+            currentFilters.status = this.getAttribute('data-filter-status');
+            applyFilters();
+        });
+    });
 }
 
 function startAutoRefresh() {
@@ -92,7 +205,10 @@ function startAutoRefresh() {
     console.log(`Starting auto-refresh every ${refreshInterval/1000}s`);
     
     // Update UI
-    document.getElementById('refresh-rate-text').textContent = `Rate: ${refreshInterval/1000}s`;
+    const refreshRateText = document.getElementById('refresh-rate-text');
+    if (refreshRateText) {
+        refreshRateText.textContent = `Rate: ${refreshInterval/1000}s`;
+    }
     
     // Start countdown
     startCountdown();
@@ -120,9 +236,20 @@ function stopAutoRefresh() {
     }
     
     // Reset progress bar
-    document.getElementById('refresh-progress').style.width = '0%';
-    document.getElementById('next-refresh-text').textContent = 'Auto-refresh stopped';
-    document.getElementById('refresh-rate-text').textContent = 'Rate: Off';
+    const refreshProgress = document.getElementById('refresh-progress');
+    if (refreshProgress) {
+        refreshProgress.style.width = '0%';
+    }
+    
+    const nextRefreshText = document.getElementById('next-refresh-text');
+    if (nextRefreshText) {
+        nextRefreshText.textContent = 'Auto-refresh stopped';
+    }
+    
+    const refreshRateText = document.getElementById('refresh-rate-text');
+    if (refreshRateText) {
+        refreshRateText.textContent = 'Rate: Off';
+    }
 }
 
 function startCountdown() {
@@ -141,18 +268,26 @@ function startCountdown() {
         
         // Update progress bar (smooth animation)
         const progressPercent = 100 - ((countdownValue / (refreshInterval / 1000)) * 100);
-        document.getElementById('refresh-progress').style.width = `${progressPercent}%`;
+        const refreshProgress = document.getElementById('refresh-progress');
+        if (refreshProgress) {
+            refreshProgress.style.width = `${progressPercent}%`;
+        }
         
         // Update text
-        document.getElementById('next-refresh-text').textContent = 
-            `Next refresh in: ${countdownValue}s`;
+        const nextRefreshText = document.getElementById('next-refresh-text');
+        if (nextRefreshText) {
+            nextRefreshText.textContent = `Next refresh in: ${countdownValue}s`;
+        }
             
     }, 1000);
 }
 
 function updateRefreshRateDisplay() {
     const rateText = refreshInterval === 0 ? 'Off' : `${refreshInterval/1000}s`;
-    document.getElementById('refresh-rate-text').textContent = `Rate: ${rateText}`;
+    const refreshRateText = document.getElementById('refresh-rate-text');
+    if (refreshRateText) {
+        refreshRateText.textContent = `Rate: ${rateText}`;
+    }
 }
 
 function refreshNow() {
@@ -174,14 +309,21 @@ function loadAnalyses(page = 1) {
         })
         .then(data => {
             console.log(`Loaded ${data.analyses?.length || 0} analyses`);
-            updateAnalysesTable(data.analyses || []);
+            
+            // Store all analyses for filtering
+            allAnalysesData = data.analyses || [];
+            
+            // Apply current filters
+            applyFilters();
+            
             updatePagination(data);
             updateLastUpdateTime();
             
             // Update displayed files count
             const countElement = document.getElementById('displayed-files-count');
             if (countElement) {
-                countElement.textContent = `${data.analyses?.length || 0} files`;
+                const filteredCount = data.analyses?.length || 0;
+                countElement.textContent = `${filteredCount} files`;
             }
         })
         .catch(error => {
@@ -190,16 +332,103 @@ function loadAnalyses(page = 1) {
         });
 }
 
-function updateAnalysesTable(analyses) {
-    const tableBody = document.getElementById('analyses-table');
+function applyFilters() {
+    // Update filter display
+    updateFilterDisplay();
+    
+    // Filter the data
+    const filteredData = filterData(allAnalysesData, currentFilters);
+    
+    // Update displayed count
+    const displayedFilesCount = document.getElementById('displayed-files-count');
+    if (displayedFilesCount) {
+        displayedFilesCount.textContent = `${filteredData.length} files`;
+    }
+    
+    // Re-render the current view
+    renderCurrentView();
+}
+
+function filterData(data, filters) {
+    if (!data || !Array.isArray(data)) return [];
+    
+    return data.filter(item => {
+        const fileInfo = item.file_info || {};
+        const analysisData = item.analysis || {};
+        const sat = analysisData.saturation_analysis || {};
+        
+        // Extract values for filtering
+        const rig = fileInfo.rig || 'Unknown';
+        const filterType = fileInfo.filter || 'Unknown';
+        let status = 'Good'; // Default
+        
+        // Determine status from saturation analysis
+        if (sat.severity === 'CRITICAL') {
+            status = 'Critical';
+        } else if (sat.severity === 'MODERATE') {
+            status = 'Moderate';
+        }
+        
+        // Apply filters
+        if (filters.rig !== 'all' && rig !== filters.rig) {
+            return false;
+        }
+        
+        if (filters.filterType !== 'all' && filterType !== filters.filterType) {
+            return false;
+        }
+        
+        if (filters.status !== 'all' && status !== filters.status) {
+            return false;
+        }
+        
+        return true;
+    });
+}
+
+function updateFilterDisplay() {
+    const displayElement = document.getElementById('current-filter-display');
+    if (!displayElement) return;
+    
+    let filters = [];
+    
+    if (currentFilters.rig !== 'all') filters.push(`${currentFilters.rig}`);
+    if (currentFilters.filterType !== 'all') filters.push(`${currentFilters.filterType} filter`);
+    if (currentFilters.status !== 'all') filters.push(`${currentFilters.status} status`);
+    
+    if (filters.length === 0) {
+        displayElement.textContent = 'All files';
+    } else {
+        displayElement.textContent = filters.join(', ');
+    }
+}
+
+function renderCurrentView() {
+    // Get filtered data
+    const filteredData = filterData(allAnalysesData, currentFilters);
+    
+    if (currentView === 'compact') {
+        renderCompactView(filteredData);
+    } else {
+        renderDetailedView(filteredData);
+    }
+}
+
+function renderCompactView(analyses) {
+    const tableBody = document.getElementById('compact-analyses-table');
     if (!tableBody) return;
     
-    if (analyses.length === 0) {
+    if (!analyses || analyses.length === 0) {
         tableBody.innerHTML = `
             <tr>
-                <td colspan="14" class="text-center text-muted py-4">
-                    <i class="bi bi-inbox" style="font-size: 2rem;"></i><br>
-                    No analyses yet. Start the watcher to analyze NEW files.
+                <td colspan="14" class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                    </div>
+                    <h5 class="text-muted">No matching analyses</h5>
+                    <p class="text-muted mb-0">
+                        Try changing your filter settings
+                    </p>
                 </td>
             </tr>
         `;
@@ -208,95 +437,242 @@ function updateAnalysesTable(analyses) {
     
     let html = '';
     analyses.forEach((analysis) => {
-        const fileInfo = analysis.file_info || {};
-        const analysisData = analysis.analysis || {};
-        const sat = analysisData.saturation_analysis || {};
-        const sky = analysisData.sky_brightness || {};
-        const snr = analysisData.snr_metrics || {};
-        
-        // Extract equipment
-        const telescope = fileInfo.telescope || analysisData.telescope || 'Unknown';
-        const camera = fileInfo.camera || analysisData.camera || 'Unknown';
-        const rig = fileInfo.rig || `${camera.split(" ")[0]}/${telescope.split(" ")[0]}`;
-        
-        // Determine exposure badge
-        const factor = analysisData.exposure_factor || 1;
-        let exposureBadge = 'badge-exposure-good';
-        if (factor > 1.5) exposureBadge = 'badge-exposure-high';
-        if (factor < 0.67) exposureBadge = 'badge-exposure-low';
-        
-        // Determine sky brightness badge
-        const skyMag = sky.mag_per_arcsec2;
-        let skyBadge = 'sky-badge-dark';
-        if (skyMag && skyMag < 19) skyBadge = 'sky-badge-bright';
-        
-        // Parse RMS from filename (placeholder - will be replaced with actual parsing)
-        let rmsValue = '--';
-        const filename = fileInfo.filename || '';
-        const rmsMatch = filename.match(/RMS_?(\d+\.?\d*)/i);
-        if (rmsMatch) {
-            rmsValue = parseFloat(rmsMatch[1]).toFixed(2);
-        }
-        
-        // Format timestamp
-        const timestamp = analysis.timestamp ? new Date(analysis.timestamp) : new Date();
-        const timeStr = timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        const dateStr = timestamp.toLocaleDateString();
-        
-        html += `
-            <tr class="${sat.severity !== 'NONE' ? 'saturation-warning' : ''}">
-                <td>
-                    <div class="text-truncate" style="max-width: 200px;" title="${fileInfo.filename || 'Unknown'}">
-                        <strong>${fileInfo.filename || 'Unknown'}</strong>
-                    </div>
-                    <small class="text-muted">${dateStr} ${timeStr}</small>
-                </td>
-                <td><span class="badge bg-secondary">${fileInfo.object || 'Unknown'}</span></td>
-                <td><span class="badge bg-info">${fileInfo.filter || 'N/A'}</span></td>
-                <td><small>${rig}</small></td>
-                <td><small>${telescope}</small></td>
-                <td><small>${camera}</small></td>
-                <td>
-                    <span class="badge ${exposureBadge}">
-                        ${analysisData.current_exposure || 0}s
-                    </span>
-                    <br>
-                    <small>${analysisData.recommended_exposure ? 'Rec: ' + analysisData.recommended_exposure.toFixed(0) + 's' : ''}</small>
-                </td>
-                <td>
-                    <span class="badge ${rmsValue !== '--' ? 'bg-primary' : 'bg-secondary'}">
-                        ${rmsValue}" ${rmsValue !== '--' ? 'RMS' : ''}
-                    </span>
-                </td>
-                <td>
-                    ${skyMag ? `
-                        <span class="badge ${skyBadge}">
-                            ${skyMag.toFixed(1)} mag/arcsec²
-                        </span>
-                    ` : 'N/A'}
-                </td>
-                <td>
-                    <small>${snr.snr_background ? snr.snr_background.toFixed(1) : 'N/A'}</small>
-                </td>
-                <td class="text-muted">--</td>
-                <td class="text-muted">--</td>
-                <td>
-                    ${sat.severity && sat.severity !== 'NONE' ? 
-                        `<span class="badge bg-warning">${sat.severity}</span>` : 
-                        `<span class="badge bg-success">Good</span>`
-                    }
-                </td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary view-analysis-btn" 
-                            onclick="viewAnalysisDetails('${fileInfo.filename || ''}')">
-                        <i class="bi bi-eye"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
+        html += createCompactRow(analysis);
     });
     
     tableBody.innerHTML = html;
+    attachViewButtonListeners();
+}
+
+function renderDetailedView(analyses) {
+    const tableBody = document.getElementById('detailed-analyses-table');
+    if (!tableBody) return;
+    
+    if (!analyses || analyses.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="2" class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="bi bi-inbox" style="font-size: 3rem; opacity: 0.3;"></i>
+                    </div>
+                    <h5 class="text-muted">No matching analyses</h5>
+                    <p class="text-muted mb-0">
+                        Try changing your filter settings
+                    </p>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    analyses.forEach((analysis) => {
+        html += createDetailedRow(analysis);
+    });
+    
+    tableBody.innerHTML = html;
+    attachViewButtonListeners();
+}
+
+function createCompactRow(analysis) {
+    const fileInfo = analysis.file_info || {};
+    const analysisData = analysis.analysis || {};
+    const sat = analysisData.saturation_analysis || {};
+    const sky = analysisData.sky_brightness || {};
+    const snr = analysisData.snr_metrics || {};
+    
+    // Extract equipment
+    const telescope = fileInfo.telescope || analysisData.telescope || 'Unknown';
+    const camera = fileInfo.camera || analysisData.camera || 'Unknown';
+    const rig = fileInfo.rig || `${camera.split(" ")[0]}/${telescope.split(" ")[0]}`;
+    
+    // Determine exposure badge
+    const factor = analysisData.exposure_factor || 1;
+    let exposureBadge = 'badge bg-success';
+    if (factor > 1.5) exposureBadge = 'badge bg-warning';
+    if (factor < 0.67) exposureBadge = 'badge bg-danger';
+    
+    // Determine sky brightness badge
+    const skyMag = sky.mag_per_arcsec2;
+    let skyBadge = 'badge bg-primary';
+    if (skyMag && skyMag < 19) skyBadge = 'badge bg-secondary';
+    
+    // Parse RMS from filename
+    let rmsValue = '--';
+    const filename = fileInfo.filename || '';
+    const rmsMatch = filename.match(/RMS_?(\d+\.?\d*)/i);
+    if (rmsMatch) {
+        rmsValue = parseFloat(rmsMatch[1]).toFixed(2);
+    }
+    
+    // Determine status
+    let status = 'Good';
+    let statusBadge = 'badge bg-success';
+    if (sat.severity === 'CRITICAL') {
+        status = 'Critical';
+        statusBadge = 'badge bg-danger';
+    } else if (sat.severity === 'MODERATE') {
+        status = 'Moderate';
+        statusBadge = 'badge bg-warning';
+    }
+    
+    // Format timestamp
+    const timestamp = analysis.timestamp ? new Date(analysis.timestamp) : new Date();
+    const timeStr = timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    const dateStr = timestamp.toLocaleDateString();
+    
+    return `
+        <tr class="analysis-card ${sat.severity && sat.severity !== 'NONE' ? 'saturation-warning' : ''}">
+            <td>
+                <div class="text-truncate" style="max-width: 200px;" title="${filename}">
+                    <strong>${filename}</strong>
+                </div>
+                <small class="text-muted">${dateStr} ${timeStr}</small>
+            </td>
+            <td><span class="badge bg-secondary">${fileInfo.object || 'Unknown'}</span></td>
+            <td><span class="badge bg-info">${fileInfo.filter || 'N/A'}</span></td>
+            <td><span class="badge rig-${rig}">${rig}</span></td>
+            <td><small>${telescope}</small></td>
+            <td><small>${camera}</small></td>
+            <td>
+                <span class="${exposureBadge}">
+                    ${analysisData.current_exposure || 0}s
+                </span>
+            </td>
+            <td>
+                <span class="badge ${rmsValue !== '--' ? 'bg-primary' : 'bg-secondary'}">
+                    ${rmsValue}" ${rmsValue !== '--' ? 'RMS' : ''}
+                </span>
+            </td>
+            <td>
+                ${skyMag ? `
+                    <span class="${skyBadge}">
+                        ${skyMag.toFixed(1)} mag/arcsec²
+                    </span>
+                ` : 'N/A'}
+            </td>
+            <td>
+                <small>${snr.snr_background ? snr.snr_background.toFixed(1) : 'N/A'}</small>
+            </td>
+            <td class="text-muted">--</td>
+            <td class="text-muted">--</td>
+            <td>
+                <span class="${statusBadge}">${status}</span>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-info view-analysis-btn" data-filename="${filename}">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+}
+
+function createDetailedRow(analysis) {
+    const fileInfo = analysis.file_info || {};
+    const analysisData = analysis.analysis || {};
+    const sat = analysisData.saturation_analysis || {};
+    const sky = analysisData.sky_brightness || {};
+    const snr = analysisData.snr_metrics || {};
+    
+    // Extract equipment
+    const telescope = fileInfo.telescope || analysisData.telescope || 'Unknown';
+    const camera = fileInfo.camera || analysisData.camera || 'Unknown';
+    const rig = fileInfo.rig || `${camera.split(" ")[0]}/${telescope.split(" ")[0]}`;
+    
+    // Determine exposure badge
+    const factor = analysisData.exposure_factor || 1;
+    let exposureBadge = 'bg-success';
+    if (factor > 1.5) exposureBadge = 'bg-warning';
+    if (factor < 0.67) exposureBadge = 'bg-danger';
+    
+    // Determine sky brightness badge
+    const skyMag = sky.mag_per_arcsec2;
+    let skyBadge = 'bg-primary';
+    if (skyMag && skyMag < 19) skyBadge = 'bg-secondary';
+    
+    // Parse RMS from filename
+    let rmsValue = '--';
+    const filename = fileInfo.filename || '';
+    const rmsMatch = filename.match(/RMS_?(\d+\.?\d*)/i);
+    if (rmsMatch) {
+        rmsValue = parseFloat(rmsMatch[1]).toFixed(2);
+    }
+    
+    // Determine status
+    let status = 'Good';
+    let statusBadge = 'status-Good';
+    if (sat.severity === 'CRITICAL') {
+        status = 'Critical';
+        statusBadge = 'status-Critical';
+    } else if (sat.severity === 'MODERATE') {
+        status = 'Moderate';
+        statusBadge = 'status-Moderate';
+    }
+    
+    return `
+        <tr class="analysis-card">
+            <td>
+                <div class="detailed-file-display">
+                    <div class="filename-line" title="${filename}">
+                        ${filename}
+                    </div>
+                    <div class="metrics-mini-table">
+                        <div class="metric-header-row">
+                            <div class="metric-header-cell"><i class="bi bi-star"></i>Object</div>
+                            <div class="metric-header-cell"><i class="bi bi-funnel"></i>Filter</div>
+                            <div class="metric-header-cell"><i class="bi bi-camera"></i>Rig</div>
+                            <div class="metric-header-cell"><i class="bi bi-telescope"></i>Telescope</div>
+                            <div class="metric-header-cell"><i class="bi bi-camera-video"></i>Camera</div>
+                            <div class="metric-header-cell"><i class="bi bi-clock"></i>Exposure</div>
+                            <div class="metric-header-cell"><i class="bi bi-bullseye"></i>RMS</div>
+                        </div>
+                        <div class="metric-value-row">
+                            <div class="metric-value-cell">${fileInfo.object || 'N/A'}</div>
+                            <div class="metric-value-cell"><span class="badge filter-${fileInfo.filter || 'Unknown'}">${fileInfo.filter || 'N/A'}</span></div>
+                            <div class="metric-value-cell"><span class="badge rig-${rig}">${rig}</span></div>
+                            <div class="metric-value-cell">${telescope}</div>
+                            <div class="metric-value-cell">${camera}</div>
+                            <div class="metric-value-cell"><span class="badge ${exposureBadge}">${analysisData.current_exposure || 0}s</span></div>
+                            <div class="metric-value-cell"><span class="badge bg-info">${rmsValue}"</span></div>
+                        </div>
+                        <div class="metric-header-row">
+                            <div class="metric-header-cell"><i class="bi bi-cloud-moon"></i>Sky</div>
+                            <div class="metric-header-cell"><i class="bi bi-graph-up"></i>SNR</div>
+                            <div class="metric-header-cell"><i class="bi bi-stars"></i>Stars</div>
+                            <div class="metric-header-cell"><i class="bi bi-circle"></i>HFR</div>
+                            <div class="metric-header-cell"><i class="bi bi-exclamation-triangle"></i>Status</div>
+                            <div class="metric-header-cell"></div>
+                            <div class="metric-header-cell"></div>
+                        </div>
+                        <div class="metric-value-row">
+                            <div class="metric-value-cell">${skyMag ? `<span class="badge ${skyBadge}">${skyMag.toFixed(1)}</span>` : 'N/A'}</div>
+                            <div class="metric-value-cell">${snr.snr_background ? `<span class="badge bg-success">${snr.snr_background.toFixed(1)}</span>` : 'N/A'}</div>
+                            <div class="metric-value-cell"><span class="badge bg-secondary">--</span></div>
+                            <div class="metric-value-cell"><span class="badge bg-secondary">--</span></div>
+                            <div class="metric-value-cell"><span class="badge ${statusBadge}">${status}</span></div>
+                            <div class="metric-value-cell"></div>
+                            <div class="metric-value-cell"></div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-outline-info view-analysis-btn" data-filename="${filename}">
+                    <i class="bi bi-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `;
+}
+
+function attachViewButtonListeners() {
+    document.querySelectorAll('.view-analysis-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const filename = this.getAttribute('data-filename');
+            viewAnalysisDetails(filename);
+        });
+    });
 }
 
 function updateLastUpdateTime() {
@@ -338,10 +714,10 @@ function loadRigSummary() {
 
 function updateRigSummary(analyses) {
     const tableBody = document.getElementById('rig-summary-table');
-    if (!tableBody || !analyses.length) {
-        if (tableBody) {
-            tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
-        }
+    if (!tableBody) return;
+    
+    if (!analyses || analyses.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No data</td></tr>';
         return;
     }
     
@@ -349,30 +725,29 @@ function updateRigSummary(analyses) {
     const rigGroups = {};
     analyses.forEach(analysis => {
         const fileInfo = analysis.file_info || {};
-        const rig = fileInfo.rig || 'Unknown';
+        const telescope = fileInfo.telescope || 'Unknown';
+        const camera = fileInfo.camera || 'Unknown';
+        const rig = fileInfo.rig || `${camera.split(" ")[0]}/${telescope.split(" ")[0]}`;
         
         if (!rigGroups[rig]) {
             rigGroups[rig] = {
                 rig: rig,
-                telescope: fileInfo.telescope || 'Unknown',
-                camera: fileInfo.camera || 'Unknown',
+                telescope: telescope,
+                camera: camera,
                 count: 0
             };
         }
         rigGroups[rig].count++;
     });
     
-        // Build table
+    // Build table
     let html = '';
     Object.values(rigGroups).forEach(rig => {
-        const shortCamera = rig.camera.split(' ')[0];
-        const shortScope = rig.telescope.split(' ')[0];
-        
         html += '<tr>';
-        html += '<td><small>' + rig.rig + '</small></td>';
-        html += '<td><small>' + shortScope + '</small></td>';
-        html += '<td><small>' + shortCamera + '</small></td>';
-        html += '<td class="analysis-count">' + rig.count + '</td>';
+        html += '<td><strong>' + rig.rig + '</strong></td>';
+        html += '<td>' + rig.telescope + '</td>';
+        html += '<td>' + rig.camera + '</td>';
+        html += '<td class="text-end"><span class="badge bg-primary">' + rig.count + '</span></td>';
         html += '</tr>';
     });
     
@@ -452,8 +827,13 @@ function updateWatcherControls(data) {
         const watcherInfo = document.getElementById('watcher-info');
         if (watcherInfo) {
             watcherInfo.innerHTML = `
-                <i class="bi bi-check-circle"></i> 
-                <strong>Watcher Active:</strong> Monitoring for new FITS files.
+                <div class="d-flex">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <div>
+                        <strong>Watcher Active:</strong> Monitoring for new FITS files.
+                        <br><small>New files will be analyzed automatically.</small>
+                    </div>
+                </div>
             `;
             watcherInfo.className = 'alert alert-success';
         }
@@ -468,8 +848,13 @@ function updateWatcherControls(data) {
         const watcherInfo = document.getElementById('watcher-info');
         if (watcherInfo) {
             watcherInfo.innerHTML = `
-                <i class="bi bi-info-circle"></i> 
-                <strong>New Files Only Mode:</strong> Only files added AFTER starting the watcher will be analyzed.
+                <div class="d-flex">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <div>
+                        <strong>New Files Only Mode:</strong> Only files added AFTER starting the watcher will be analyzed.
+                        <br><small>Use "Process All" to analyze existing files.</small>
+                    </div>
+                </div>
             `;
             watcherInfo.className = 'alert alert-info';
         }
@@ -552,7 +937,6 @@ function showAnalysisModal(analysis) {
 }
 
 function createAnalysisDetailsHTML(analysis) {
-    // Simplified for now - will be enhanced later
     const fileInfo = analysis.file_info || {};
     
     return `
@@ -575,7 +959,6 @@ ${JSON.stringify(analysis, null, 2)}
 }
 
 function exportCurrentAnalysis() {
-    // Will be implemented when we have the analysis data in modal
     showNotification('Export feature coming soon', 'info');
 }
 
