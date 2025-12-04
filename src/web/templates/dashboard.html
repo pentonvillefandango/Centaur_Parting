@@ -618,6 +618,84 @@
     opacity: 0.9; /* Slightly lighter */
 }
 */
+    .btn-grid,
+    .btn-row {
+        gap: 8px; /* Slightly smaller gaps on mobile */
+    }
+}     
+
+/* ===== REMOVE BADGES FROM EXPOSURE, RMS, SKY COLUMNS ===== */
+
+/* Exposure column (7th column) - TARGET ALL BADGE VARIATIONS */
+#compact-analyses-table td:nth-child(7) .badge,
+#compact-analyses-table td:nth-child(7) [class*="badge"],
+#compact-analyses-table td:nth-child(7) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+/* RMS column (8th column) */
+#compact-analyses-table td:nth-child(8) .badge,
+#compact-analyses-table td:nth-child(8) [class*="badge"],
+#compact-analyses-table td:nth-child(8) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+/* Sky column (9th column) */
+#compact-analyses-table td:nth-child(9) .badge,
+#compact-analyses-table td:nth-child(9) [class*="badge"],
+#compact-analyses-table td:nth-child(9) span[class*="badge"] {
+    all: unset !important;
+    background: none !important;
+    background-color: transparent !important;
+    color: var(--bs-body-color) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-weight: normal !important;
+    font-size: inherit !important;
+    display: inline !important;
+    text-decoration: none !important;
+    box-shadow: none !important;
+}
+
+/* If you prefer a cleaner approach using shared class */
+.no-badge-style {
+    all: unset !important;
+    background: none !important;
+    color: inherit !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    display: inline !important;
+}
+    
 </style>
 </head>
 <body>
