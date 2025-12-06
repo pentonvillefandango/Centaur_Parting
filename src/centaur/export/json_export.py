@@ -94,13 +94,13 @@ def frame_to_dict(frame: Frame) -> dict:
 # ---------------------------------------------------------------------
 
 def export_frames_to_json(
-    frames: Iterable[Frame],
+    frames_data: list[dict],
     out_path: str | Path,
 ) -> Path:
     """
-    Write the given frames (and their analysis) to a JSON file.
+    Write already-serialised frame dicts to a JSON file.
 
-    If out_path is relative, it will be placed inside Centaur_Analysis/.
+    frames_data should be a list of dicts, e.g. [frame_to_dict(f) for f in frames].
     """
     ensure_export_root()
 
@@ -108,12 +108,12 @@ def export_frames_to_json(
     if not out_path.is_absolute():
         out_path = EXPORT_ROOT / out_path
 
-    frames_list = [frame_to_dict(f) for f in frames]
-
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", encoding="utf-8") as f:
-        json.dump(frames_list, f, indent=2)
+        json.dump(frames_data, f, indent=2)
 
+    print(f"[export] Wrote {len(frames_data)} frames to {out_path}")
+    return out_path
     print(f"[export] Wrote {len(frames_list)} frames to {out_path}")
     return out_path
 
@@ -134,10 +134,16 @@ def export_frames_for_rig(
     if out_filename is None:
         out_filename = f"{rig_key}_frames.json"
 
+    from sqlalchemy.orm import joinedload
+
     with get_session() as session:
         query = (
             session.query(Frame)
             .join(Rig)
+            .options(
+                joinedload(Frame.rig),
+                joinedload(Frame.analysis),
+            )
             .filter(Rig.rig_key == rig_key)
             .order_by(Frame.id.asc())
         )
@@ -145,9 +151,9 @@ def export_frames_for_rig(
             query = query.limit(limit)
 
         frames = query.all()
+        frames_data = [frame_to_dict(f) for f in frames]
 
-    return export_frames_to_json(frames, out_filename)
-
+    return export_frames_to_json(frames_data, out_filename)
 
 def export_frames_for_target(
     target_name: str,
@@ -163,9 +169,15 @@ def export_frames_for_target(
     if out_filename is None:
         out_filename = f"target_{safe_target}_frames.json"
 
+    from sqlalchemy.orm import joinedload
+
     with get_session() as session:
         query = (
             session.query(Frame)
+            .options(
+                joinedload(Frame.rig),
+                joinedload(Frame.analysis),
+            )
             .filter(Frame.target_name == target_name)
             .order_by(Frame.id.asc())
         )
@@ -173,9 +185,9 @@ def export_frames_for_target(
             query = query.limit(limit)
 
         frames = query.all()
+        frames_data = [frame_to_dict(f) for f in frames]
 
-    return export_frames_to_json(frames, out_filename)
-
+    return export_frames_to_json(frames_data, out_filename)
 
 # ---------------------------------------------------------------------
 # CLI entrypoint
