@@ -78,32 +78,46 @@ def analyze_fits_file(path: str | Path) -> dict:
 
 def store_analysis_for_frame(frame_id: int) -> Analysis:
     """
-    Load a Frame from DB, analyze its FITS file, create or update Analysis row.
+    Load a Frame from DB, analyze its FITS file, and create or update its Analysis row.
+
+    - If an Analysis already exists for this frame_id, it is updated.
+    - If none exists, a new Analysis row is created.
     """
     with get_session() as session:
         frame: Frame = session.query(Frame).filter(Frame.id == frame_id).one()
 
         metrics = analyze_fits_file(frame.file_path)
 
-        analysis = Analysis(
-            frame_id=frame.id,
-            severity="OK",                   # placeholder — real severity later
-            recommended_exposure_s=None,     # placeholder for exposure engine
-            recommendation_text=None,
-            sky_brightness_mag_per_arcsec2=None,
-            background_snr=None,
-            faint_object_snr=None,
-            median_adu=metrics["median_adu"],
-            fwhm_px=None,                    # Phase 2
-            eccentricity=None,               # Phase 2
-            star_count=metrics["star_count"],
-            saturation_fraction=metrics["saturation_fraction"],
-            noise_regime=None,
-            raw_analysis_json=metrics,
-            created_at_utc=datetime.utcnow(),
+        # Check for existing Analysis row for this frame
+        analysis: Optional[Analysis] = (
+            session.query(Analysis)
+            .filter(Analysis.frame_id == frame.id)
+            .one_or_none()
         )
 
-        session.add(analysis)
+        if analysis is None:
+            analysis = Analysis(
+                frame_id=frame.id,
+                created_at_utc=datetime.utcnow(),
+            )
+            session.add(analysis)
+
+        # Update common fields (these may change if we re-run analysis)
+        analysis.severity = "OK"  # placeholder — real severity engine later
+        analysis.recommended_exposure_s = None
+        analysis.recommendation_text = None
+        analysis.sky_brightness_mag_per_arcsec2 = None
+        analysis.background_snr = None
+        analysis.faint_object_snr = None
+        analysis.median_adu = metrics["median_adu"]
+        analysis.fwhm_px = None         # Phase 2
+        analysis.eccentricity = None    # Phase 2
+        analysis.star_count = metrics["star_count"]
+        analysis.saturation_fraction = metrics["saturation_fraction"]
+        analysis.noise_regime = None
+        analysis.raw_analysis_json = metrics
+        # We could add an updated_at_utc later if we want to track re-runs.
+
         session.commit()
         session.refresh(analysis)
 
