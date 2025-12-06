@@ -1,66 +1,36 @@
-# Python
+# --------------------------
+# Python cache / artifacts
+# --------------------------
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+*.pyo
 
-# Virtual Environment
+# Virtual environments
 venv/
-env/
-ENV/
-env.bak/
-venv.bak/
+.venv/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
+# OS cruft
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 
-# Project specific exclusions
+# --------------------------
+# Local databases
+# --------------------------
+cp_data.db
+
+# --------------------------
+# Astronomy data files
+# (never track raw FITS)
+# --------------------------
 *.fits
 *.fit
-*.FITS
-*.FIT
-Centaur_Analysis/
-test*.json
-test*.txt
-test*.log
-smoke_test.fits
-realistic_test.fits
+*.fts
 
-# Test scripts to exclude
-test_enhanced_analyzer.py
-test_realistic.py
-test_actual_fits.py
-test_watcher_verbose.py
-test_rig24_watcher.py
-run_dashboard.py
-quick_test.py
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+
+# IDE / editor stuff (optional)
+.vscode/
+.idea/
+
