@@ -11,8 +11,6 @@ from sqlalchemy import (
     String,
     Text,
     Boolean,
-    datetime,
-    relationship,
 )
 from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import relationship, declarative_base
@@ -91,7 +89,7 @@ class Frame(Base):
 
     # When the exposure happened (if we can infer), otherwise when ingested
     captured_at_utc = Column(DateTime, index=True)
-    created_at_utc = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at_utc = Column(DateTime, nullable=False, default=dt.datetime.utcnow)
 
     # Complete FITS header as JSON for future use
     raw_header_json = Column(JSON)
@@ -144,7 +142,7 @@ class Analysis(Base):
     # Full analysis dict (everything the analyzer computed)
     raw_analysis_json = Column(JSON)
 
-    created_at_utc = Column(DateTime, default=dt.datetime.utcnow, nullable=False)
+    created_at_utc = Column(DateTime, nullable=False, default=dt.datetime.utcnow)
 
     def __repr__(self) -> str:
         return f"<Analysis frame_id={self.frame_id} severity={self.severity!r}>"
@@ -167,7 +165,7 @@ class OpticalProfile(Base):
     scope_name = Column(String, nullable=True)   # from TELESCOP or user input
     camera_name = Column(String, nullable=True)  # from INSTRUME or user input
 
-    created_at_utc = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at_utc = Column(DateTime, nullable=False, default=dt.datetime.utcnow)
 
 
 class ProfileThreshold(Base):
@@ -199,5 +197,5 @@ class ProfileThreshold(Base):
     star_count_warn = Column(Integer, nullable=True)  # below this → WARN
     star_count_crit = Column(Integer, nullable=True)  # below this → CRITICAL
 
-    created_at_utc = Column(DateTime, nullable=False, default=datetime.utcnow)
+    created_at_utc = Column(DateTime, nullable=False, default=dt.datetime.utcnow)
 
