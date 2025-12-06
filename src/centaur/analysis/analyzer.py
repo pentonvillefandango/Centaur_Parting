@@ -239,6 +239,77 @@ def analyze_fits_file(path: str | Path) -> dict:
 # ---------------------------------------------------------------------
 # Store analysis in DB
 # ---------------------------------------------------------------------
+def compute_severity(metrics: dict) -> tuple[str, Optional[str]]:
+    """
+    First-pass severity engine based on simple heuristics.
+
+    Returns:
+        (severity, recommendation_text)
+
+    severity is one of: "OK", "WARN", "CRITICAL".
+    recommendation_text may be None or a short human-readable hint.
+    """
+    severity = "OK"
+    reasons: list[str] = []
+
+    star_count = metrics.get("star_count")
+    fwhm_px = metrics.get("fwhm_px")
+    ecc = metrics.get("eccentricity")
+    saturation = metrics.get("saturation_fraction", 0.0)
+    median_adu = metrics.get("median_adu")
+
+    # 1) Star detection
+    if star_count is None or star_count == 0:
+        # No reliable stars: strong red flag
+        severity = "CRITICAL"
+        reasons.append("No stars detected – check focus, clouds, pointing, or exposure.")
+
+    elif star_count < 5:
+        # Very low star count: at least a warning
+        severity = max(severity, "WARN", key=lambda s: ["OK", "WARN", "CRITICAL"].index(s))
+        reasons.append(f"Very low star count ({star_count}) – possible clouds or narrow field.")
+
+    # 2) FWHM (image sharpness)
+    if fwhm_px is not None:
+        if fwhm_px > 4.5:
+            severity = "CRITICAL"
+            reasons.append(f"FWHM is very high ({fwhm_px:.2f} px) – strong blur (focus/seeing/guiding).")
+        elif fwhm_px > 3.5:
+            severity = max(severity, "WARN", key=lambda s: ["OK", "WARN", "CRITICAL"].index(s))
+            reasons.append(f"FWHM is elevated ({fwhm_px:.2f} px) – softer than typical.")
+
+    # 3) Eccentricity (shape / elongation)
+    if ecc is not None:
+        if ecc > 0.7:
+            severity = "CRITICAL"
+            reasons.append(f"Eccentricity is very high ({ecc:.2f}) – strong star elongation.")
+        elif ecc > 0.5:
+            severity = max(severity, "WARN", key=lambda s: ["OK", "WARN", "CRITICAL"].index(s))
+            reasons.append(f"Eccentricity is somewhat high ({ecc:.2f}) – mild elongation.")
+
+    # 4) Saturation (clipping)
+    if saturation is not None:
+        if saturation > 0.02:  # >2% pixels saturated: bad
+            severity = "CRITICAL"
+            reasons.append(
+                f"Saturation fraction is high ({saturation:.3%}) – significant clipping."
+            )
+        elif saturation > 0.005:  # >0.5%: warning
+            severity = max(severity, "WARN", key=lambda s: ["OK", "WARN", "CRITICAL"].index(s))
+            reasons.append(
+                f"Saturation fraction is elevated ({saturation:.3%}) – some clipping."
+            )
+
+    # Optional: brightness sanity check (very rough)
+    if median_adu is not None:
+        if median_adu < 100:
+            severity = max(severity, "WARN", key=lambda s: ["OK", "WARN", "CRITICAL"].index(s))
+            reasons.append(
+                f"Median ADU is very low ({median_adu:.0f}) – exposure may be too short."
+            )
+
+    recommendation_text = " ".join(reasons) if reasons else None
+    return severity, recommendation_text
 
 def store_analysis_for_frame(frame_id: int) -> Analysis:
     """
@@ -266,10 +337,13 @@ def store_analysis_for_frame(frame_id: int) -> Analysis:
             )
             session.add(analysis)
 
+        # Compute severity and a simple recommendation string
+        severity, recommendation_text = compute_severity(metrics)
+
         # Update common fields (these may change if we re-run analysis)
-        analysis.severity = "OK"  # placeholder — real severity engine later
-        analysis.recommended_exposure_s = None
-        analysis.recommendation_text = None
+        analysis.severity = severity
+        analysis.recommended_exposure_s = None  # to be filled by a future exposure engine
+        analysis.recommendation_text = recommendation_text
         analysis.sky_brightness_mag_per_arcsec2 = None
         analysis.background_snr = None
         analysis.faint_object_snr = None
