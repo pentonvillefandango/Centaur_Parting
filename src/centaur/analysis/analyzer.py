@@ -48,6 +48,74 @@ def compute_star_metrics(img: np.ndarray) -> dict:
     thresh = 3.0 * bkg.globalrms
 
     try:
+        # NOTE: sep.extract returns JUST the objects array unless
+        # segmentation_map=True is passed. So we only unpack one value here.
+        objects = sep.extract(
+            data_sub,
+            thresh,
+            err=bkg.globalrms,
+            minarea=5,   # minimum number of connected pixels
+        )
+    except Exception:
+        # If SEP chokes on something weird, fail gracefully
+        return {
+            "star_count": None,
+            "fwhm_px": None,
+            "eccentricity": None,
+        }
+
+    if objects is None or len(objects) == 0:
+        return {
+            "star_count": 0,
+            "fwhm_px": None,
+            "eccentricity": None,
+        }
+
+    star_count = int(len(objects))
+
+    # a, b are semi-major / semi-minor axes, in pixels
+    a = objects["a"]
+    b = objects["b"]
+
+    # Guard against weird zero/negative values
+    valid = (a > 0) & (b > 0)
+    if not np.any(valid):
+        return {
+            "star_count": star_count,
+            "fwhm_px": None,
+            "eccentricity": None,
+        }
+
+    a = a[valid]
+    b = b[valid]
+
+    # Approximate FWHM from second moments:
+    # FWHM ~ 2.3548 * sqrt(a * b)
+    fwhm_est = 2.3548 * np.sqrt(a * b)
+    fwhm_px = float(np.median(fwhm_est))
+
+    # Eccentricity: e = sqrt(1 - (b/a)^2), ensure a >= b
+    major = np.maximum(a, b)
+    minor = np.minimum(a, b)
+    ecc = np.sqrt(1.0 - (minor / major) ** 2)
+    eccentricity = float(np.median(ecc))
+
+    return {
+        "star_count": star_count,
+        "fwhm_px": fwhm_px,
+        "eccentricity": eccentricity,
+    }
+    # Ensure float32 and C-contiguous for SEP
+    data = np.ascontiguousarray(img.astype(np.float32))
+
+    # Estimate and subtract background
+    bkg = sep.Background(data)
+    data_sub = data - bkg
+
+    # Detection threshold: 3-sigma above background RMS (tunable later)
+    thresh = 3.0 * bkg.globalrms
+
+    try:
         objects, _ = sep.extract(
             data_sub,
             thresh,
