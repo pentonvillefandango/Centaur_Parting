@@ -53,4 +53,5 @@ def summary():
                 .count()
             )
             print(f"  - {rig.rig_key}: {frames} frames")
-        print("-------------------------------------"
+        print("-------------------------------------")
+
