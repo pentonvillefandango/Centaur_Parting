@@ -34,3 +34,6 @@ cp_data.db
 .vscode/
 .idea/
 
+# Centaur exports (JSON etc.)
+Centaur_Analysis/
+
