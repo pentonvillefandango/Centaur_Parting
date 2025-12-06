@@ -1,9 +1,23 @@
+from __future__ import annotations
+
 import datetime as dt
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    Boolean,
+    # remove: datetime,
+    # remove: relationship,
+)
+from sqlalchemy.dialects.sqlite import JSON
 from sqlalchemy.orm import relationship, declarative_base
 
-Base = declarative_base()
-
+from centaur.db.session import Base
 
 # ============================================================
 # RIG
@@ -98,7 +112,7 @@ class OpticalProfile(Base):
     # focal_length_mm comes from fits filename or user override
     focal_length_mm = Column(Float, nullable=True)
 
-    created_at_utc = Column(DateTime, default=dt.datetime.utcnow)
+    created_at_utc = Column(DateTime, nullable=False, default=dt.datetime.utcnow)
 
     thresholds = relationship("ProfileThreshold", back_populates="profile")
 
@@ -118,7 +132,7 @@ class ProfileThreshold(Base):
     crit_min = Column(Float, nullable=True)
     crit_max = Column(Float, nullable=True)
 
-    created_at_utc = Column(DateTime, default=dt.datetime.utcnow)
+    created_at_utc = Column(DateTime, nullable=False, default=dt.datetime.utcnow)
 
     profile = relationship("OpticalProfile", back_populates="thresholds")
 
