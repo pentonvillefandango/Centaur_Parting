@@ -10,9 +10,12 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    Boolean,
+    datetime,
+    relationship,
 )
 from sqlalchemy.dialects.sqlite import JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, declarative_base
 
 from centaur.db.session import Base
 
@@ -145,3 +148,56 @@ class Analysis(Base):
 
     def __repr__(self) -> str:
         return f"<Analysis frame_id={self.frame_id} severity={self.severity!r}>"
+
+class OpticalProfile(Base):
+    """
+    Describes a scope+camera (and implicitly optics) combination.
+
+    key:
+        Internal identifier, e.g. "AskarV-80+Reducer__QHY MiniCAM8"
+        or a user-defined name like "AskarV80_Reducer_ATR2600MM".
+    """
+    __tablename__ = "optical_profile"
+
+    id = Column(Integer, primary_key=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+
+    # Human-readable / descriptive fields (optional)
+    description = Column(String, nullable=True)
+    scope_name = Column(String, nullable=True)   # from TELESCOP or user input
+    camera_name = Column(String, nullable=True)  # from INSTRUME or user input
+
+    created_at_utc = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class ProfileThreshold(Base):
+    """
+    Stores learned thresholds for an optical profile, optionally
+    per filter and exposure range.
+
+    Example: Ha, 150–210s for AskarV80_Reducer_ATR2600MM.
+    """
+    __tablename__ = "profile_threshold"
+
+    id = Column(Integer, primary_key=True)
+
+    profile_id = Column(Integer, ForeignKey("optical_profile.id"), nullable=False)
+    profile = relationship("OpticalProfile", backref="thresholds")
+
+    # Scope of this threshold row
+    filter_norm = Column(String, nullable=True)   # e.g. "HA", "L", "R", ...
+    exposure_s_min = Column(Float, nullable=True)
+    exposure_s_max = Column(Float, nullable=True)
+
+    # Metric thresholds
+    fwhm_warn = Column(Float, nullable=True)
+    fwhm_crit = Column(Float, nullable=True)
+
+    ecc_warn = Column(Float, nullable=True)
+    ecc_crit = Column(Float, nullable=True)
+
+    star_count_warn = Column(Integer, nullable=True)  # below this → WARN
+    star_count_crit = Column(Integer, nullable=True)  # below this → CRITICAL
+
+    created_at_utc = Column(DateTime, nullable=False, default=datetime.utcnow)
+
